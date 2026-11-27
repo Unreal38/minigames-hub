@@ -8,7 +8,7 @@
 // A tile is a number 0..105: 0..103 are pet tiles (two copies of 52), 104 and 105 are the eggs.
 // The table is a list of groups { id, t: [tile, ...] } in the order they are shown.
 // Pet names are the same in every language, so nothing here needs translating.
-export const PETS = ['cindercub', 'zapkit', 'sproutle', 'axolily']; // Ember, Spark, Leaf, Tide
+export const PETS = ['chilipup', 'zapkit', 'sproutle', 'waddlet']; // Ember, Spark, Leaf, Tide: red, gold, green, blue like their numbers
 export const EL_COL = ['#d24a1f', '#a87800', '#2f8a43', '#1f74bb']; // number colour on a tile, dark enough for cream
 export const N_TILES = 106, START = 14, EGG_PTS = 30, OPEN_PTS = 30;
 export const TIMERS = [0, 45, 60, 90];

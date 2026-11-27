@@ -102,7 +102,7 @@ const seedPic = i => shot3d(async THREE => {
 // three Pet Herds tiles in that set's look: a 7, a 7 and a Mystery Egg
 async function herdPic(i) {
   const { herdLook } = await import('./pieceskins.js'), { paintTile, petImage } = await import('./games/herd/tiles.js'), [c, g] = cv2d(240, 240);
-  const ids = [6, 19, 104], pets = await Promise.all(ids.map(t => (t < 104 ? petImage(['cindercub', 'zapkit'][t / 13 | 0]) : null)));
+  const ids = [6, 19, 104], pets = await Promise.all(ids.map(t => (t < 104 ? petImage(['chilipup', 'zapkit'][t / 13 | 0]) : null)));
   const face = document.createElement('canvas'); face.width = 128; face.height = 170; const f = face.getContext('2d'), L = herdLook(i);
   [[62, 128, -.18], [120, 118, 0], [178, 128, .18]].forEach(([x, y, rot], n) => {
     paintTile(f, ids[n], pets[n], i);
