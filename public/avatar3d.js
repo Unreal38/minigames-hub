@@ -1273,7 +1273,7 @@ export function headSpots() {
     _nsU.setFromMatrixColumn(camera.matrixWorld, 1).normalize().multiplyScalar(r).add(_nsC);
     _nsC.project(camera); _nsU.project(camera);
     if (_nsC.z > 1 || Math.abs(_nsC.x) > 1.3 || Math.abs(_nsC.y) > 1.3) continue;
-    spots.push({ x: (_nsC.x + 1) / 2 * W, y: (1 - _nsC.y) / 2 * H, r: Math.abs(_nsU.y - _nsC.y) / 2 * H, el });
+    spots.push({ x: (_nsC.x + 1) / 2 * W, y: (1 - _nsC.y) / 2 * H, r: Math.abs(_nsU.y - _nsC.y) / 2 * H, el, root });
   }
   return spots;
 }
