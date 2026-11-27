@@ -258,7 +258,7 @@ const HERD_TILES = [
   herdTile('#f2dfbf', '#e6cfa8', '#c9a77c'),                          // classic: warm sand
   herdTile('#e3c08e', '#b98457', '#9b6a43', 'grain'),                 // wood: light oak
   herdTile('#b7e6cf', '#7ed3b2', '#4fb08d', 'stripes'),               // mint candy
-  herdTile('#26306c', '#171f4c', '#0e1436', 'stars', null, '#c7d0f3'), // night sky: a pale moonlight card inside the starry frame, so the pet colours read
+  herdTile('#d9c8ff', '#3b2a7a', '#2a1d5c', 'dusk'),                  // night sky: a lavender-to-pink dusk with a gold moon and stars
   herdTile('#dedad4', '#b9b2a8', '#9a9288', 'veins'),                 // marble
   herdTile('#f4d488', '#e0a63a', '#c98a1a', 'hex'),                   // honeycomb
   herdTile('#cde9fa', '#8fcbee', '#6fb4dc', 'flake'),                 // frost (winter)
@@ -273,6 +273,12 @@ export function paintHerdFace(g, w, h, k) {
   g.save(); g.globalAlpha = m === 'stars' ? .9 : .28; g.strokeStyle = g.fillStyle = L.body; g.lineCap = 'round';
   if (m === 'grain') { g.lineWidth = 2.5 * u; for (let y = 10; y < h; y += 22 * u) { g.beginPath(); g.moveTo(0, y); g.bezierCurveTo(w * .3, y - 8 * u, w * .6, y + 8 * u, w, y - 3 * u); g.stroke(); } }
   else if (m === 'stripes') { g.lineWidth = 9 * u; for (let x = -h; x < w + h; x += 26 * u) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x + h, h); g.stroke(); } }
+  else if (m === 'dusk') {
+    g.globalAlpha = 1; const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#cfc0ff'); gr.addColorStop(1, '#f7c6e4'); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+    const star = (x, y, r, c) => { g.fillStyle = c; g.beginPath(); for (let i = 0; i < 8; i++) { const a = Math.PI / 4 * i - Math.PI / 2, rr = i % 2 ? r * .38 : r; g.lineTo((x + Math.cos(a) * rr) * u, (y + Math.sin(a) * rr) * u); } g.closePath(); g.fill(); };
+    star(16, 16, 7, '#ffcf3a'); star(112, 150, 6, '#ffcf3a'); star(14, 150, 4, '#ffffff');
+    g.fillStyle = '#ffd84a'; g.beginPath(); g.arc(108 * u, 20 * u, 9 * u, 0, 7); g.fill(); g.fillStyle = '#d1c2ff'; g.beginPath(); g.arc(112 * u, 17 * u, 7.6 * u, 0, 7); g.fill(); // crescent moon
+  }
   else if (m === 'stars') { g.fillStyle = '#fff1b8'; for (const [x, y, r] of [[14, 14, 2.4], [112, 22, 2], [20, 96, 1.6], [108, 110, 2.4], [60, 158, 1.8], [102, 154, 1.4], [16, 150, 2]]) { g.beginPath(); g.arc(x * u, y * u, r * u, 0, 7); g.fill(); } }
   else if (m === 'veins') { g.lineWidth = 2 * u; for (const [a, b, c, d] of [[0, 30, 128, 70], [0, 120, 128, 96], [30, 0, 70, 170]]) { g.beginPath(); g.moveTo(a * u, b * u); g.bezierCurveTo((a + c) * .4 * u, b * u + 30 * u, (a + c) * .6 * u, d * u - 30 * u, c * u, d * u); g.stroke(); } }
   else if (m === 'hex') { g.lineWidth = 2.5 * u; const r = 14 * u; for (let row = 0; row * r * 1.5 < h + r; row++) for (let col = 0; col * r * 1.73 < w + r; col++) { const cx = col * r * 1.73 + (row % 2 ? r * .87 : 0), cy = row * r * 1.5; g.beginPath(); for (let i = 0; i < 6; i++) { const a = Math.PI / 3 * i + Math.PI / 6; g[i ? 'lineTo' : 'moveTo'](cx + Math.cos(a) * r, cy + Math.sin(a) * r); } g.closePath(); g.stroke(); } }
@@ -283,7 +289,7 @@ export function paintHerdFace(g, w, h, k) {
   // fade their pattern out under the middle of the face, so it only shows round the edges.
   g.save();
   if (L.card) { const i = 9 * u, r = 10 * u; g.fillStyle = L.card; g.beginPath(); g.roundRect(i, i, w - i * 2, h - i * 2, r); g.fill(); }
-  else { const gr = g.createRadialGradient(w / 2, h * .5, 0, w / 2, h * .5, h * .5); gr.addColorStop(0, L.face); gr.addColorStop(.62, L.face); gr.addColorStop(1, L.face + '00'); g.fillStyle = gr; g.globalAlpha = .88; g.fillRect(0, 0, w, h); }
+  else if (m !== 'dusk') { const gr = g.createRadialGradient(w / 2, h * .5, 0, w / 2, h * .5, h * .5); gr.addColorStop(0, L.face); gr.addColorStop(.62, L.face); gr.addColorStop(1, L.face + '00'); g.fillStyle = gr; g.globalAlpha = .88; g.fillRect(0, 0, w, h); }
   g.restore();
 }
 
