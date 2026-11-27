@@ -54,6 +54,7 @@ const HEART_O = (w = 18) => `<svg viewBox="0 0 16 16" width="${w}" height="${w}"
 // favourite pets come first in every pet list (a stable sort keeps the list's own order inside each group)
 const favFirst = list => list.map((p, i) => ({ p, i })).sort((a, b) => (b.p.fav ? 1 : 0) - (a.p.fav ? 1 : 0) || a.i - b.i).map(x => x.p);
 const favMark = p => p?.fav ? `<span class="pffav" role="img" title="${L('Favourite', 'Ulubiony')}" aria-label="${L('Favourite', 'Ulubiony')}">${HEART(12)}</span>` : '';
+const STAR_SVG = '<svg class="lgstar" viewBox="0 0 16 16" width="18" height="18" aria-hidden="true"><path d="M8 1.2l2 4.3 4.7.5-3.5 3.2 1 4.6L8 11.5l-4.2 2.3 1-4.6L1.3 6l4.7-.5z" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/></svg>'; // the legendary islands' badge
 const LOCK = '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M4.5 7V5.2a3.5 3.5 0 0 1 7 0V7" fill="none" stroke="currentColor" stroke-width="2.2"/><rect x="2.5" y="7" width="11" height="8" rx="2" fill="currentColor"/></svg>';
 const zoneVars = k => ZONE_ISLE[k] ? ` style="--s1:${ZONE_ISLE[k][1]};--s2:${ZONE_ISLE[k][2]}"` : '';
 const elTag = e => `<span class="el" style="--c:${ELEMENTS[e]}">${elName(e)}</span>`;
@@ -826,45 +827,54 @@ export function mount(app, ctx) {
         const gives = zn.far ? L('Rare pets from old stories', 'Rzadkie zwierzaki z dawnych opowieści') : list(Object.keys(zn.gives).filter(m => m !== 'coins').map(m => MATS[m].toLowerCase()));
         return `<button type="button" class="zone dest${locked ? ' off' : ''}${zn.far ? ' far' : ''}" data-a="zone" data-zone="${k}" aria-pressed="${panel.zone === k}"${zoneVars(k)}${locked ? ` title="${L(`Opens at farmhouse level ${zn.house}`, `Otwiera się, gdy dom ma poziom ${zn.house}`)}"` : ''}>${zoneSky(k)}
           ${locked ? `<span class="dlock">${LOCK}${L(`Farmhouse level ${zn.house}`, `Dom: poziom ${zn.house}`)}</span>` : panel.zone === k ? '<span class="dtick" aria-hidden="true">✓</span>' : ''}
-          <span class="dcap"><b>${zn.name}</b><span class="dline">${zn.far ? '' : elTag(zn.el)}<small>${gives}</small></span></span></button>`;
+          <span class="dcap"><b>${zn.name}</b><span class="dline">${zn.far ? `<span class="dfar">${L('Legendary', 'Legendarna')}</span>` : elTag(zn.el)}<small>${gives}</small></span></span></button>`;
       };
-      const zones = Object.entries(ZONES).filter(([, zn]) => !zn.far).map(tile).join(''), far = Object.entries(ZONES).filter(([, zn]) => zn.far).map(tile).join('');
+      const zones = Object.entries(ZONES).filter(([, zn]) => !zn.far).map(tile).join(''), far = Object.entries(ZONES).filter(([, zn]) => zn.far).map(tile).join(''); // base islands, then the legendary (endgame) ones in their own band
       if (!tripFits(panel.zone, panel.trip)) panel.trip = Object.keys(TRIPS).find(k => tripFits(panel.zone, k)) || 'stroll'; // far islands take a Voyage, the rest never do
       const fuel = TRIPS[panel.trip].fuel, broke = !!fuel && !canAfford(F.inv, fuel);
       const trips = Object.entries(TRIPS).filter(([k]) => tripFits(panel.zone, k)).map(([k, tr]) => `<button type="button" data-a="trip" data-trip="${k}" aria-pressed="${panel.trip === k}">${tr.name}<small>${span(tr.min)}</small></button>`).join('');
+      // a short tag under each pet instead of a long note, so every tile stays the same small height; the full sentence is its tooltip
+      const petTag = p => { const busy = busyFor(p, 'send'); if (busy) return '';
+        if (F.train.ids.includes(p.id)) return `<span class="ptag warn" title="${L('Training now. Sending it ends the training.', 'Teraz trenuje. Wyprawa przerwie trening.')}">${L('stops training', 'przerwie trening')}</span>`;
+        if (Object.values(F.work || {}).includes(p.id)) return `<span class="ptag warn" title="${L('Helping at a building now. Sending it ends that.', 'Teraz pomaga przy budynku. Wyprawa to przerwie.')}">${L('stops work', 'przerwie pracę')}</span>`;
+        return atHome(z, p.sp, elOf(p)) ? `<span class="ptag good" title="${L('Its element matches this island: it brings back 25% more.', 'Jego żywioł pasuje do tej wyspy: przyniesie 25% więcej.')}">${L('+25% here', '+25% tutaj')}</span>` : ''; };
       const pets = favFirst(F.pets.filter(p => !p.lodge)).map(p => `<button type="button" class="pickpet${busyFor(p, 'send') ? ' off' : ''}" data-a="party" data-id="${p.id}" data-why="${busyFor(p, 'send')}" aria-pressed="${panel.pets.includes(p.id)}">
-        ${petRow(p, busyFor(p, 'send') ? ' · ' + busyFor(p, 'send') : F.train.ids.includes(p.id) ? L(' · training (ends if sent)', ' · trenuje (wyprawa przerwie trening)') : Object.values(F.work || {}).includes(p.id) ? L(' · helping at a building (ends if sent)', ' · pomaga przy budynku (wyprawa to przerwie)') : atHome(z, p.sp, elOf(p)) ? L(' · +25% here', ' · +25% tutaj') : '')}</button>`).join('');
+        ${petRow(p, busyFor(p, 'send') ? ' · ' + busyFor(p, 'send') : '')}${petTag(p)}</button>`).join('');
       const est = party.length ? Object.entries(tripLoot(panel.zone, panel.trip, party)).map(([k, n]) => [k, Math.round(n)]).filter(([, n]) => n > 0).map(([k, n]) => mat(k, '~' + n)).join('') : '';
       const full = F.pets.length >= F.allRoom;
       if (panel.step === 'where') { // step 1 of 2: the whole panel is the places, so nothing hides below them
         box.innerHTML = `<div class="panel tripp sendwhere"><h2>${L(`Send pets exploring`, `Wyślij zwierzaki na wyprawę`)}</h2>
           <h3 class="tstep"><span class="tnum">1</span>${L('Where to? Tap an island.', 'Dokąd? Dotknij wyspy.')}<span class="tcount">${L('next: who goes', 'potem: kto idzie')}</span></h3>
           <div class="dests">${zones}</div>
-          ${far ? `<h3 class="tstep farhead">${L('Far expeditions', 'Dalekie wyprawy')}<span class="tcount">${L('12 to 24 hours', '12 do 24 godzin')}</span></h3><div class="dests">${far}</div>` : ''}
+          ${far ? `<section class="legends"><h3 class="tstep farhead">${STAR_SVG}${L('Legendary voyages', 'Wyprawy legendarne')}<span class="tcount">${L('endgame · 12 to 24 hours', 'endgame · 12 do 24 godzin')}</span></h3><div class="dests wide">${far}</div></section>` : ''}
           <div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">${L(`Not now`, `Nie teraz`)}</button></div></div>`;
       } else {
       // step 2 of 2: the island they picked, what it gives, then how long and who goes
       const wild = Object.entries(z.wild).sort((a, b) => b[1] - a[1]).map(([sp]) => F.album?.[sp] ? `<span class="wildpet" title="${esc(SPECIES[sp].name)}">${thumb('pet:' + sp, SPECIES[sp].name)}</span>` : `<span class="wildpet unknown" title="${L('Not met yet', 'Jeszcze nie spotkany')}">?</span>`).join('');
       const perPet = Object.entries(z.gives).filter(([m]) => m !== 'coins').map(([m, n]) => [m, tripRate(m, n)]).map(([m, n]) => mat(m, '~' + (n < 1 ? +n.toFixed(1) : Math.round(n)))).join('');
+      const chance = full ? L('Every bed is taken, so no wild pet can move in. Build a Pet Hut to make room.', 'Wszystkie łóżka są zajęte, więc żaden dziki zwierzak się nie wprowadzi. Zbuduj Chatkę zwierzaków, żeby zrobić miejsce.')
+        : L(`Chance a wild pet follows them home: <b>${Math.round((F.first ? 1 : TRIPS[panel.trip].find) * 100)}%</b>.${z.far ? ` Chance it comes in another element: ${Math.round(FAR_VARIANT * 100)}%.` : ''}`, `Szansa, że dziki zwierzak wróci z drużyną: <b>${Math.round((F.first ? 1 : TRIPS[panel.trip].find) * 100)}%</b>.${z.far ? ` Szansa, że będzie miał inny żywioł: ${Math.round(FAR_VARIANT * 100)}%.` : ''}`);
+      const wx = (() => { const w = skyNow().w; return ['sunny', 'wind', 'rainbow'].includes(w.kind) ? `<p class="wxnow">${wxIcon(w.kind)} <b>${w.name}:</b> ${w.bonus}</p>` : ''; })();
+      // the party's three seats sit in the bar with the Send button: a face per pet picked (tap it to take it out), an empty seat for each one left
+      const seats = Array.from({ length: PARTY }, (_, i) => party[i] ? `<button type="button" class="pseat" data-a="party" data-id="${party[i].id}" title="${L(`Take ${esc(party[i].name)} out`, `Wyjmij: ${esc(party[i].name)}`)}" aria-label="${L(`Take ${esc(party[i].name)} out`, `Wyjmij: ${esc(party[i].name)}`)}">${face(party[i])}<i aria-hidden="true">×</i></button>` : `<span class="pseat empty" aria-hidden="true">+</span>`).join('');
       box.innerHTML = `<div class="panel tripp sendwho"><h2>${L(`Send pets exploring`, `Wyślij zwierzaki na wyprawę`)}</h2>
         <div class="zsum"${zoneVars(panel.zone)}><div class="dest zbig">${zoneSky(panel.zone)}</div>
-          <div class="zinfo"><b class="zname">${z.name}</b><span class="dline">${z.far ? '' : elTag(z.el)}<small>${z.blurb}</small></span>
-            <span class="hint">${L('Each pet brings back about this much an hour:', 'Każdy zwierzak przynosi mniej więcej tyle na godzinę:')}</span><div class="mats">${perPet}</div>
-            <span class="hint">${L('Wild pets live here. The ones you have not met yet show as ?', 'Tu żyją dzikie zwierzaki. Te, których jeszcze nie znasz, mają znak ?')}</span><div class="wilds">${wild}</div>
-            <button type="button" class="btn sm w" data-a="where">◀ ${L('Pick another island', 'Wybierz inną wyspę')}</button></div></div>
-        <h3 class="tstep"><span class="tnum">2</span>${L('For how long?', 'Na jak długo?')}</h3>
-        <div class="pills trips${z.far ? ' two' : ''}">${trips}</div>
-        ${fuel ? `<div class="fuel${broke ? ' short' : ''}"><span class="hint">${L('Fuel for the balloon and food for the way, paid when they set off:', 'Paliwo do balonu i jedzenie na drogę, płacone przy wyruszeniu:')}</span><div class="mats">${Object.entries(fuel).map(([k, n]) => mat(k, `${n}`, (F.inv[k] || 0) < n ? 'short' : '')).join('')}</div>
-          ${broke ? `<p class="hint">${(F.inv.pack || 0) < (fuel.pack || 0) ? L('Pack Trail Packs in the Kitchen (8 berries, 10 fiber, 4 coal each).', 'Spakuj Prowiant w Kuchni (8 jagód, 10 włókien i 4 węgle za sztukę).') + ' ' : ''}${(F.inv.crystal || 0) < (fuel.crystal || 0) ? L('Crystal comes from Pebble Ridge, Thunder Meadow and Starfall Isle, or a Workshop swap.', 'Kryształ znajdziesz na Kamykowej Grani, Burzowej Łące i Wyspie Spadających Gwiazd albo wymienisz w Warsztacie.') : ''}</p>` : ''}</div>` : ''}
-        <h3 class="tstep"><span class="tnum">3</span>${L(`Who goes? Pick up to ${PARTY}.`, `Kto idzie? Wybierz najwyżej ${PARTY}.`)} <span class="tcount">${party.length} / ${PARTY}</span></h3>
+          <div class="zinfo"><span class="zhead"><b class="zname">${z.name}</b>${z.far ? `<span class="dfar">${L('Legendary', 'Legendarna')}</span>` : elTag(z.el)}<small>${z.blurb}</small></span>
+            <span class="zrow"><span class="hint">${L('Each pet, per hour:', 'Każdy zwierzak na godzinę:')}</span><span class="mats">${perPet}</span></span>
+            <span class="zrow"><span class="hint">${L('Wild pets (? not met yet):', 'Dzikie zwierzaki (? jeszcze nie znasz):')}</span><span class="wilds">${wild}</span></span></div>
+          <button type="button" class="btn sm w zchg" data-a="where">◀ ${L('Other island', 'Inna wyspa')}</button></div>
+        ${foodRow(L('Food for the way', 'Jedzenie na drogę'), TRIP_FOOD, panel.food, 'tripfood', k => RECIPES[k].sure ? L('a wild pet for sure', 'dziki zwierzak na pewno') : RECIPES[k].loot && RECIPES[k].find ? L(`+${Math.round(RECIPES[k].loot * 100)}% materials, wild pets likelier`, `+${Math.round(RECIPES[k].loot * 100)}% materiałów, łatwiej o dzikiego`) : RECIPES[k].loot ? L(`+${Math.round(RECIPES[k].loot * 100)}% materials`, `+${Math.round(RECIPES[k].loot * 100)}% materiałów`) : L(`back ${Math.round(RECIPES[k].fast * 100)}% sooner`, `powrót o ${Math.round(RECIPES[k].fast * 100)}% szybciej`))}
+        <h3 class="tstep"><span class="tnum">2</span>${L(`Who goes? Pick up to ${PARTY}.`, `Kto idzie? Wybierz najwyżej ${PARTY}.`)} <span class="tcount">${party.length} / ${PARTY}</span></h3>
         ${groupsRow(party)}
         <div class="party">${pets}</div>
-        ${foodRow(L('Food for the way', 'Jedzenie na drogę'), TRIP_FOOD, panel.food, 'tripfood', k => RECIPES[k].sure ? L('a wild pet for sure', 'dziki zwierzak na pewno') : RECIPES[k].loot && RECIPES[k].find ? L(`+${Math.round(RECIPES[k].loot * 100)}% materials, wild pets likelier`, `+${Math.round(RECIPES[k].loot * 100)}% materiałów, łatwiej o dzikiego`) : RECIPES[k].loot ? L(`+${Math.round(RECIPES[k].loot * 100)}% materials`, `+${Math.round(RECIPES[k].loot * 100)}% materiałów`) : L(`back ${Math.round(RECIPES[k].fast * 100)}% sooner`, `powrót o ${Math.round(RECIPES[k].fast * 100)}% szybciej`))}
-        <div class="est">${party.length ? `${L(`<span class="hint">Should bring back</span>`, `<span class="hint">Powinni przynieść</span>`)}<div class="mats">${est}</div>` : '<span class="hint">' + L('Tap a pet to add it to the party.', 'Dotknij zwierzaka, żeby dodać go do drużyny.') + '</span>'}</div>
-        <p class="hint">${L(`${full ? 'Every bed is taken, so no wild pet can move in. Build a Pet Hut to make room.' : `Chance a wild pet follows them home: ${Math.round((F.first ? 1 : TRIPS[panel.trip].find) * 100)}%.${z.far ? ` Chance it comes in another element: ${Math.round(FAR_VARIANT * 100)}%.` : ''}`}`, `${full ? 'Wszystkie łóżka są zajęte, więc żaden dziki zwierzak się nie wprowadzi. Zbuduj Chatkę zwierzaków, żeby zrobić miejsce.' : `Szansa, że dziki zwierzak wróci z drużyną: ${Math.round((F.first ? 1 : TRIPS[panel.trip].find) * 100)}%.${z.far ? ` Szansa, że będzie miał inny żywioł: ${Math.round(FAR_VARIANT * 100)}%.` : ''}`}`)}</p>
-        ${(() => { const w = skyNow().w; return ['sunny', 'wind', 'rainbow'].includes(w.kind) ? `<p class="wxnow">${wxIcon(w.kind)} <b>${w.name}:</b> ${w.bonus}</p>` : ''; })()}
-        <div class="row end sendbar"><button type="button" class="btn ghost-ink" data-a="where">${L(`Back`, `Wstecz`)}</button>
-          <button type="button" class="btn big m" data-a="send" ${party.length && !broke ? '' : 'disabled'}>${L(`Send ${party.length ? list(party.map(p => esc(p.name))) : 'them'}`, `Wyślij${party.length ? ': ' + list(party.map(p => esc(p.name))) : ''}`)}</button></div></div>`;
+        ${broke ? `<p class="hint fuelhint">${L('Not enough for the balloon yet.', 'Na balon jeszcze nie starcza.')} ${(F.inv.pack || 0) < (fuel.pack || 0) ? L('Pack Trail Packs in the Kitchen (8 berries, 10 fiber, 4 coal each).', 'Spakuj Prowiant w Kuchni (8 jagód, 10 włókien i 4 węgle za sztukę).') + ' ' : ''}${(F.inv.crystal || 0) < (fuel.crystal || 0) ? L('Crystal comes from Pebble Ridge, Thunder Meadow and Starfall Isle, or a Workshop swap.', 'Kryształ znajdziesz na Kamykowej Grani, Burzowej Łące i Wyspie Spadających Gwiazd albo wymienisz w Warsztacie.') : ''}</p>` : ''}
+        <p class="hint tchance">${chance}</p>${wx}
+        <div class="sendbar"><div class="howlong"><span class="tstep"><span class="tnum">3</span>${L('How long?', 'Na jak długo?')}</span><div class="pills trips${z.far ? ' two' : ''}">${trips}</div>
+          ${fuel ? `<div class="fuel${broke ? ' short' : ''}" title="${L('Fuel for the balloon and food for the way, paid when they set off', 'Paliwo do balonu i jedzenie na drogę, płacone przy wyruszeniu')}"><span class="hint">${L('Fuel:', 'Paliwo:')}</span><span class="mats">${Object.entries(fuel).map(([k, n]) => mat(k, `${n}`, (F.inv[k] || 0) < n ? 'short' : '')).join('')}</span></div>` : ''}</div>
+          <div class="pseats">${seats}</div>
+          <div class="est">${party.length ? `<span class="hint">${L('Should bring back', 'Powinni przynieść')}</span><div class="mats">${est}</div>` : '<span class="hint">' + L('Tap pets above to fill the party.', 'Dotknij zwierzaków powyżej, żeby skompletować drużynę.') + '</span>'}</div>
+          <button type="button" class="btn ghost-ink sback" data-a="where">${L(`Back`, `Wstecz`)}</button>
+          <button type="button" class="btn big m ssend" data-a="send" ${party.length && !broke ? '' : 'disabled'}${party.length ? ` aria-label="${L(`Send ${list(party.map(p => esc(p.name)))}`, `Wyślij: ${list(party.map(p => esc(p.name)))}`)}"` : ''}>${L('Send', 'Wyślij')}</button></div></div>`;
       }
     } else {
       const b = panel.back, z = ZONES[b.zone], found = b.found && F.pets.find(p => p.id === b.found);
