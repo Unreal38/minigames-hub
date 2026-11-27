@@ -12,6 +12,9 @@ function ac() {
   return ctx;
 }
 addEventListener('pointerdown', () => ac(), { once: true });
+export const audioCtx = () => ac();                       // music.js plays through the same context
+const muteSubs = new Set();
+export const onMute = fn => { muteSubs.add(fn); };          // told when the sound button is pressed
 
 function tone(freq, dur = .12, type = 'sine', vol = .3, slide = 0, delay = 0) {
   const c = ac(); if (!c || muted) return;
@@ -36,7 +39,7 @@ function noise(dur = .2, vol = .2, from = 2000, to = 400, delay = 0, q = 1) {
 
 export const sfx = {
   get muted() { return muted; },
-  toggle() { muted = !muted; try { localStorage.setItem('ct_mute', muted ? '1' : '0'); } catch {} if (!muted) this.click(); return muted; },
+  toggle() { muted = !muted; try { localStorage.setItem('ct_mute', muted ? '1' : '0'); } catch {} if (!muted) this.click(); muteSubs.forEach(f => f(muted)); return muted; },
   tick() { tone(1800, .03, 'sine', .06); },
   hover() { tone(1250 + Math.random() * 200, .045, 'sine', .07); },
   click() { tone(660, .07, 'triangle', .22, 1.6); },

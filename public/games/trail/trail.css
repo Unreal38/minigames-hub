@@ -194,6 +194,9 @@ body.night .tt-odds { background: var(--paper); border: 1.5px solid var(--card-e
   .tt .tcode { display: none; }
   .tt .tl .chip { font-size: 13px; padding: 4px 10px; } .tt-n { display: none; }
   .tt-mapbtn span { display: none; }
+  /* five round buttons since the music one: tighter, so they never reach the round chip and the map button */
+  .tt .tl { left: 8px; gap: 4px; } .tt .tr { right: 8px; gap: 3px; }
+  .tt .tr .round { width: 36px; height: 36px; min-width: 0; padding: 0; } .tt .tr .round svg { width: 19px; height: 19px; }
   .tt-side { left: 8px; right: 140px; width: auto; flex-direction: row; flex-wrap: wrap; gap: 5px; overflow: hidden; max-height: none; top: calc(max(14px, env(safe-area-inset-top)) + 54px); }
   .tt-side .tt-row { flex: 1 1 calc(50% - 3px); min-width: 0; box-sizing: border-box; align-items: center; }
   .tt-side .tt-rn { gap: 4px; }
