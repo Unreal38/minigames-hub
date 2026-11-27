@@ -265,6 +265,7 @@ console.log('trail rules ok');
     }
     if (room?.game !== 'trail' || !state || state.game !== 'trail') return;
     const P = state.pend;
+    if (state.stage === 'intro' && !(state.skipV || []).includes(me())) send({ t: 'act', a: { t: 'skip' } }); // the long how-to-play talk
     if (state.stage === 'cheer' && state.cheer && !state.cheer.done) send({ t: 'act', a: { t: 'cheer', i: -1 } });
     if (!P || P.s !== me() || Date.now() - stateAt < state.busy) return;
     const a = { first: { t: 'roll' }, card: { t: 'card', i: 0 }, fork: { t: 'fork', j: P.opts?.[0] }, shop: { t: 'shop', k: null }, meet: { t: 'meet', skip: true }, well: { t: 'well', yes: false }, bench: { t: 'bench', o: -1 }, lure: { t: 'lure', yes: false }, pact: { t: 'pact', yes: false } }[P.k];

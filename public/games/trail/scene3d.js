@@ -117,8 +117,8 @@ export function createScene(canvas, { onFrame } = {}) {
   const P = NODES.map(n => new THREE.Vector3(n.x, SY, n.z)), START = new THREE.Vector3();
   const nodeP = i => (i < 0 ? START : P[i]);
   const DIRT = snowy ? '#c9a26a' : '#d9b77c', DIRT_EDGE = snowy ? '#8f6b3e' : '#a9814f'; // the path is cleared of snow in winter too, so the stones stand out (Kuba 2026-11-27)
-  const icons = new THREE.Group(); scene.add(icons); let iconYaw = 99;
-  const ICON_GEO = new THREE.PlaneGeometry(SR * 1.75, SR * 1.75), iconMats = new Map();
+  const icons = new THREE.Group(); scene.add(icons); let iconYaw = 99; const iconAt = new Map();
+  const ICON_GEO = new THREE.PlaneGeometry(SR * 1.42, SR * 1.42), iconMats = new Map();
   const iconMat = kind => { if (!iconMats.has(kind)) iconMats.set(kind, new THREE.MeshStandardMaterial({ map: stoneIcon(kind), transparent: true, roughness: .95, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 })); return iconMats.get(kind); };
   NODES.forEach((n, i) => {
     const kind = n.kind, top = STONE[kind] || '#ffd36b';
@@ -128,7 +128,7 @@ export function createScene(canvas, { onFrame } = {}) {
     cyl(g, SR + .1, SR + .1, .05, '#fff6e2', 0, .135, 0, 9);
     cyl(g, SR, SR + .03, .08, top, 0, .14, 0, 9);
     // the kind's icon on top, the right way up for the camera (it is not part of the merged island: it has a picture)
-    if (STONE[kind]) { const ic = new THREE.Mesh(ICON_GEO, iconMat(kind)); ic.rotation.x = -Math.PI / 2; ic.position.set(n.x, .186, n.z); icons.add(ic); }
+    if (STONE[kind]) { const ic = new THREE.Mesh(ICON_GEO, iconMat(kind)); ic.rotation.x = -Math.PI / 2; ic.position.set(n.x, .186, n.z); icons.add(ic); iconAt.set(i, ic); }
     // dirt dots to the next stones, and plank bridges over the stream
     for (const j of n.next) { const b = NODES[j];
       // a dirt path with a darker edge from stone to stone (cut where a bridge crosses the stream)
@@ -425,6 +425,81 @@ export function createScene(canvas, { onFrame } = {}) {
   const ro = new ResizeObserver(es => { const b = es[es.length - 1].contentRect; rw = b.width; rh = b.height; }); ro.observe(canvas);
   function fit() { camera.aspect = cw / ch; camera.updateProjectionMatrix(); }
 
+  // ---------- what a stone does, shown on the stone (Kuba 2026-11-27: every stone needs visual feedback) ----------
+  const boneMat = new THREE.SpriteMaterial({ map: stoneIcon('bone'), depthWrite: false, transparent: true });
+  const eggMat = flat('#fff6e2'), spikeMat = flat('#4d7a32'), fxRingGeo = new THREE.RingGeometry(.78, 1, 28).rotateX(-Math.PI / 2);
+  const vec = (x, y, z) => new THREE.Vector3(x, y, z), anims = []; // { o, t, d, step(o, u) }
+  const anim = (o, d, step, delay = 0) => { scene.add(o); anims.push({ o, t: -delay, d, step }); step(o, 0); o.visible = delay <= 0; };
+  const headOf = s => { const f = folk[s]; return f ? vec(f.x, SY + 1.3, f.z) : null; };
+  function ring(p, col, d = .7, r1 = 1.4) { const m = new THREE.Mesh(fxRingGeo, new THREE.MeshBasicMaterial({ color: col, transparent: true, depthWrite: false }));
+    anim(m, d, (o, u) => { const k = SR * (.9 + u * r1); o.scale.set(k, 1, k); o.position.set(p.x, SY + .2, p.z); o.material.opacity = (1 - u) * .9; }); }
+  function bump(node) { const ic = iconAt.get(node); if (!ic) return; anims.push({ o: null, t: 0, d: .45, step: (o, u) => { const k = 1 + Math.sin(u * Math.PI) * .3; ic.scale.set(k, k, 1); ic.position.y = .186 + Math.sin(u * Math.PI) * .05; } }); }
+  // a spot just in front of the stone, on the camera's side, so the player standing on it doesn't hide the show
+  const front = (p, d = .62) => { const dx = camera.position.x - p.x, dz = camera.position.z - p.z, l = Math.hypot(dx, dz) || 1; return vec(p.x + dx / l * d, p.y, p.z + dz / l * d); };
+  // treats pop up out of the stone in a fan, hang for a beat, then fly to the player (gain);
+  // or they jump off the player and scatter on the ground (loss)
+  function bones(p, s, n, lose) {
+    const head = headOf(s); if (!head) return; const q = front(p), m = Math.min(n, 8);
+    for (let k = 0; k < m; k++) {
+      const sp = new THREE.Sprite(boneMat), fan = (k - (m - 1) / 2) * .42, side = vec(-(q.z - p.z), 0, q.x - p.x).normalize();
+      if (!lose) {
+        const up = vec(q.x + side.x * fan, SY + 1.25 + (k % 2) * .18, q.z + side.z * fan), from = vec(q.x, SY + .2, q.z);
+        anim(sp, 1.25, (o, u) => { let sc = .55;
+          if (u < .3) { const e = ease(u / .3); o.position.copy(from).lerp(up, e); sc *= .3 + e * .7; }
+          else if (u < .55) { o.position.copy(up); o.position.y += Math.sin((u - .3) * 25) * .04; }
+          else { const e = ease((u - .55) / .45); o.position.copy(up).lerp(head, e); o.position.y += Math.sin(e * Math.PI) * .35; sc *= 1 - e * .7; }
+          o.scale.set(sc, sc, 1); o.material.rotation = Math.sin(u * 9 + k) * .35; }, k * .08);
+      } else {
+        const a = k / m * 6.283 + .4, to = vec(q.x + Math.cos(a) * 1.1, SY - .1, q.z + Math.sin(a) * 1.1), mid = head.clone().lerp(to, .5).setY(head.y + .9);
+        anim(sp, .95, (o, u) => { const e = ease(u); o.position.copy(head).lerp(mid, e).lerp(mid.clone().lerp(to, e), e); const sc = .5 * (u < .12 ? u / .12 : u > .8 ? (1 - u) / .2 : 1); o.scale.set(sc, sc, 1); o.material.rotation = u * 5 * (k % 2 ? 1 : -1); }, k * .06);
+      }
+    }
+  }
+  function spikes(p, miss) {
+    for (let k = 0; k < 7; k++) { const m = new THREE.Mesh(new THREE.ConeGeometry(.1, .7, 5), spikeMat), a = k / 7 * 6.283 + .3, r = SR * .8;
+      anim(m, 1, (o, u) => { const up = u < .15 ? ease(u / .15) : u > .7 ? (1 - u) / .3 : 1; o.scale.set(1, Math.max(.01, up), 1); o.position.set(p.x + Math.cos(a) * r, SY + .1 + .35 * up, p.z + Math.sin(a) * r); o.rotation.set(Math.sin(a) * .45, 0, -Math.cos(a) * .45); }, k * .025); }
+    if (miss) fx.burst(vec(p.x, SY + 1.1, p.z), { n: 16, colors: ['#9fd8ff', '#ffffff'], shape: STAR, speed: 1.8, up: 2.4, size: .28, life: .8 });
+  }
+  // an egg wobbles up out of the nest, cracks a little sparkle and hops into the player's arms
+  function egg(p, s) {
+    const m = new THREE.Mesh(new THREE.SphereGeometry(.26, 14, 12), eggMat); shell(m, 1.1); const head = headOf(s), q = front(p, .7);
+    let sparked = false;
+    anim(m, 2.1, (o, u) => {
+      if (u < .3) { const v = ease(u / .3); o.position.set(q.x, SY + .25 + v * 1, q.z); o.scale.set(1, 1.3, 1).multiplyScalar(.2 + v * .8); o.rotation.z = 0; }
+      else if (u < .68) { o.position.set(q.x, SY + 1.25 + Math.sin((u - .3) * 16) * .05, q.z); o.rotation.z = Math.sin((u - .3) * 45) * .3; o.scale.set(1, 1.3, 1);
+        if (!sparked && u > .5) { sparked = true; fx.burst(vec(q.x, SY + 1.4, q.z), { n: 14, colors: ['#ffe27a', '#ffffff', '#9fd8ff'], shape: STAR, speed: 1.6, up: 2, size: .22, life: .8 }); } }
+      else { const v = ease((u - .68) / .32); o.position.set(q.x, SY + 1.25, q.z).lerp(head || o.position, v); o.position.y += Math.sin(v * Math.PI) * .3; o.scale.set(1, 1.3, 1).multiplyScalar(1 - v * .75); o.rotation.z = 0; }
+    });
+    fx.burst(vec(q.x, SY + .4, q.z), { n: 12, colors: ['#fff6e2', '#b07a4a'], shape: DOT, speed: 1.4, up: 2.2, size: .18, life: .7 });
+  }
+  // waits till that player has hopped onto the stone (the events come in with the hop); node null = where they stand
+  const fxWait = [];
+  function stoneFx(node, kind, s, v = 0, then) {
+    const f = folk[s]; if (f && (f.hop || f.q.length)) { fxWait.push([node, kind, s, v, then]); return; }
+    then?.(); if (!kind) return; if (node == null) node = f?.node;
+    const p = node != null && node >= 0 && nodeP(node); if (!p) return;
+    bump(node); ring(p, STONE[kind] || STONE[kind?.replace(/0$/, '')] || '#ffffff');
+    const pt = vec(p.x, SY + .4, p.z);
+    if (v > 0 && (kind === 'treat' || kind === 'picnic' || kind === 'spring')) bones(p, s, v, false);
+    if (kind === 'picnic') fx.burst(pt, { n: 14, colors: ['#ff7fb0', '#ffd36b', '#ffffff'], shape: HEART, speed: 1.8, up: 3, size: .22, life: .9 });
+    else if (kind === 'bramble') { spikes(p, false); if (v < 0) bones(p, s, -v, true); }
+    else if (kind === 'guarded') spikes(p, true);
+    else if (kind === 'honey') { if (v < 0) bones(p, s, -v, true); fx.burst(pt, { n: 12, colors: ['#f2a93b', '#ffd36b'], shape: DOT, speed: 1.2, up: 1.6, size: .2, life: .8 }); }
+    else if (kind === 'egg') egg(p, s);
+    else if (kind === 'nest0' || kind === 'bench0') fx.puff(pt, { n: 10, color: ['#ffffff', '#d8d0c8'], size: .35, speed: 1.2 });
+    else if (kind === 'spring') { for (let k = 0; k < 3; k++) anims.push({ o: null, t: -k * .25, d: .01, step: (o, u) => { if (u > 0) fx.puff(front(p, .5).setY(SY + .5), { n: 6, color: ['#ffffff', '#cdeffd'], size: .3, speed: 1.2 }); } });
+      fx.burst(pt, { n: 14, colors: ['#6fe0d6', '#ffffff'], shape: DOT, speed: 1.2, up: 3.4, size: .16, life: 1 }); }
+    else if (kind === 'den') { fx.burst(pt, { n: 18, colors: ['#ffd34d', '#ffffff', '#b994f0'], shape: STAR, speed: 2.2, up: 3, size: .26, life: .9 }); fx.puff(pt, { n: 10, color: ['#8d7a66', '#c9b59a'], size: .45, speed: 1.6 }); }
+    else if (kind === 'well') { ring(p, '#ffe27a', 1, 2.2); fx.burst(pt, { n: 22, colors: ['#ffe27a', '#ffffff', '#5fb4ff'], shape: STAR, speed: 1.4, up: 4.5, size: .24, life: 1.2 }); }
+    else if (kind === 'bench') fx.burst(pt, { n: 14, colors: ['#ff6f9a', '#ffd6ec'], shape: HEART, speed: 1.4, up: 3, size: .26, life: 1.1 });
+    else if (kind === 'stall') fx.burst(pt, { n: 12, colors: ['#ffd36b', '#ff7a59', '#ffffff'], shape: DOT, speed: 1.6, up: 2.6, size: .18, life: .8 });
+  }
+  function stepAnims(dt) {
+    for (let k = 0; k < fxWait.length; k++) { const w = fxWait[k], f = folk[w[2]]; if (!f || !(f.hop || f.q.length)) { fxWait.splice(k--, 1); stoneFx(...w); } }
+    for (let k = anims.length - 1; k >= 0; k--) { const a = anims[k]; a.t += dt; if (a.t < 0) continue;
+      if (a.o) a.o.visible = true; const u = Math.min(1, a.t / a.d); a.step(a.o, u);
+      if (u >= 1) { if (a.o) { scene.remove(a.o); if (a.o.geometry !== fxRingGeo && !a.o.isSprite) a.o.geometry?.dispose?.(); if (a.o.material !== boneMat && a.o.material !== eggMat && a.o.material !== spikeMat) a.o.material?.dispose?.(); } anims.splice(k, 1); } }
+  }
   // one pose of an emote; e: 0..1 how far it is blended in, u: 0..1 time through it. Returns extra yaw for a twirl.
   function pose(f, ud, k, e, u) {
     const arms = ud.arms || [], hd = ud.head, mix = (a, key, to) => { a.rotation[key] += (to - a.rotation[key]) * e; };
@@ -517,6 +592,7 @@ export function createScene(canvas, { onFrame } = {}) {
       host.g.children[0] && wiggle(host.g.children[0], T, host.seed, .6);
       if (host.g.visible) blob(host.x, host.z, .4); }
     if (podBlocks?.visible) for (const m of podBlocks.children) if (m.scale) m.scale.y += (1 - m.scale.y) * Math.min(1, dt * 5);
+    stepAnims(dt);
     stepDice(performance.now(), blob);
     { const yaw = Math.atan2(camera.position.x - camL.x, camera.position.z - camL.z); if (Math.abs(yaw - iconYaw) > .01) { iconYaw = yaw; for (const ic of icons.children) ic.rotation.z = yaw; } } // icons stay upright for the camera
     for (const a of forkArrows) { a.position.y = .55 + Math.sin(T * 4 + a.userData.k) * .09; }
@@ -594,7 +670,7 @@ export function createScene(canvas, { onFrame } = {}) {
   }
 
   return {
-    setState, walk, cue, emote, setThink, peek, stepOut, setPodium, roll, setFork,
+    setState, walk, cue, emote, setThink, peek, stepOut, setPodium, stoneFx, roll, setFork,
     rolling: () => thrown.length > 0,
     focus(s) { focus = s; },
     setLineup,
