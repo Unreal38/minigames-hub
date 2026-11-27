@@ -1122,7 +1122,7 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
   // a fence dropped half a tile off a line falls into it (fence.js fenceSnap)
   const snapGhost = (x, y) => !farm ? [x, y] : LINKS[ghost.type] ? fenceSnap(farm.items, x, y, ghost.r, ghost.id, (a, b) => fits(farm, ghost.type, a, b, ghost.r, ghost.id))
     : PATHS[ghost.type] ? pathSnap(farm.items, ghost.type, x, y, ghost.r, ghost.id, (a, b) => fits(farm, ghost.type, a, b, ghost.r, ghost.id)) : [x, y]; // a path tile slides in line with its kind too
-  const ghostInfo = () => ghost && { type: ghost.type, id: ghost.id, x: ghost.x, y: ghost.y, r: ghost.r, ok: ghost.ok };
+  const ghostInfo = () => ghost && { type: ghost.type, id: ghost.id, x: ghost.x, y: ghost.y, r: ghost.r, ok: ghost.ok, same: !!ghost.from && ghost.from[0] === ghost.x && ghost.from[1] === ghost.y && ghost.from[2] === ghost.r }; // same: a picked-up piece not moved yet
   function ghostModel(type, id, link) {
     const g = itemModel(type, false, false, id ? levelOf(farm.items.find(i => i.id === id) || { type }) : 1, link);
     g.traverse(m => { if (m.isMesh) { m.material = m.material.clone(); m.material.transparent = true; m.material.opacity = .8; m.castShadow = false; m.userData.baked = true; } });
@@ -1133,7 +1133,7 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
     const g = ghostModel(type, id, type === 'museum' ? linkOf({ type }) : 0);
     const pad = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), padMat); pad.rotation.x = -Math.PI / 2;
     scene.add(g, pad);
-    ghost = { type, id, x, y, r, g, pad, ok: false, link: 0 };
+    ghost = { type, id, x, y, r, g, pad, ok: false, link: 0, from: id ? [x, y, r] : null };
     if (id && (LINKS[type] || PATHS[type])) syncItems(); // the fences next to the one picked up let go of it
     for (const [iid, e] of items) e.g.visible = iid !== id;
     renderer.shadowMap.needsUpdate = true;
