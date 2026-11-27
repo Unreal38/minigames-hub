@@ -15,7 +15,7 @@ import { flairOf } from '../public/cosmetics.js';
 import { lookOf, makeBaby, charmsFor, snapshot, shellOf, hatchHours, BREED_LV, CUDDLE_H, REST_H, PATTERNS, TALENTS } from '../public/games/farm/breed.js';
 import { dayOf } from './day.js';
 import { thinFences, thinArches } from '../public/games/farm/fence.js';
-import { PATHS } from '../public/games/farm/paths.js';
+import { PATHS, MAX_PATHS, halfPaths } from '../public/games/farm/paths.js';
 import { ordersView, orderAction } from './farmorders.js';
 import { journalOf, chapterDone, rewardOf } from '../public/games/farm/journal.js';
 
@@ -39,8 +39,8 @@ const rnd = n => crypto.randomInt(n);
 // reads every farm back and compares it; only a perfect match switches, otherwise farms stay on the JSON file as before.
 let mode = 'json';
 export const farmMode = () => mode;
-// thin: fences (1) and Flower Arches (2) are thin pieces (1 x .5). Farms saved before have their old whole-tile ones moved over once (fence.js).
-const take = (pid, f) => { if (f && Array.isArray(f.items) && Array.isArray(f.pets)) { f.pets.forEach(fixPet); if (!f.thin) thinFences(f.items); if (!(f.thin >= 2)) { thinArches(f.items); f.thin = 2; } bindCoins(pid, f); farms.set(pid, f); return true; } return false; };
+// thin: fences (1) and Flower Arches (2) are thin pieces (1 x .5); path tiles (3) are half tiles. Farms saved before have their old whole-tile ones moved over once (fence.js).
+const take = (pid, f) => { if (f && Array.isArray(f.items) && Array.isArray(f.pets)) { f.pets.forEach(fixPet); if (!f.thin) thinFences(f.items); if (!(f.thin >= 2)) { thinArches(f.items); f.thin = 2; } if (f.thin < 3) { f.nid = halfPaths(f.items, f.nid); f.thin = 3; } bindCoins(pid, f); farms.set(pid, f); return true; } return false; };
 export function load() {
   if (db.isOpen() && db.getKv('imported:farms')) {
     for (const { id, v } of db.rows('f')) { take(id, JSON.parse(v)); farms.remember(id, v); }
@@ -552,7 +552,7 @@ export function handle(p, a, reply) {
   if (a.t === 'starter') {
     if (f) return no('You already have a farm.');
     if (!STARTERS.includes(a.sp)) return;
-    const nf = { v: 1, thin: 2, size: SIZES[0], nid: 2, items: [{ id: 1, type: 'house', x: 3, y: 1, r: 0 }], inv: { ...START_INV },
+    const nf = { v: 1, thin: 3, size: SIZES[0], nid: 2, items: [{ id: 1, type: 'house', x: 3, y: 1, r: 0 }], inv: { ...START_INV },
       name: p.name, pets: [newPet(a.sp, p.user)], house: 1, trip: null, trips: 0, created: Date.now(), jn: { got: 0 } };
     bindCoins(p.pid, nf); farms.set(p.pid, nf); unhold(p, nf); scheduleSave();
     return reply({ t: 'farm', farm: view(nf, p), did: 'starter' });
@@ -564,7 +564,7 @@ export function handle(p, a, reply) {
   if (Array.isArray(picks) && picks.some(id => f.pets.find(x => x.id === id)?.lodge)) return no('One of them is stored in the Pet Lodge. Move it out to the island first.');
   if (a.t === 'place') {
     const it = own(ITEMS, a.type); if (!it || it.fixed) return;
-    if (f.items.length >= MAX_ITEMS) return no('The farm is full. Put something away first.');
+    if (PATHS[a.type] ? f.items.filter(i => PATHS[i.type]).length >= MAX_PATHS : f.items.filter(i => !PATHS[i.type]).length >= MAX_ITEMS) return no('The farm is full. Put something away first.'); // path pieces are small, so they have their own allowance
     const max = maxOf(f, a.type);
     if (max && countOf(f, a.type) >= max) return no(`You can only have ${max} of those.`);
     if (it.house && (f.house || 1) < it.house) return no(`That needs a level ${it.house} farmhouse.`);
