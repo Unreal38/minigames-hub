@@ -360,3 +360,8 @@ body.night .tt-idots i.on { background: var(--lantern); }
 .tt-stand .r.mine { background: var(--hi-tint, #fff1c9); }
 .tt-stand .nm { flex: 1; min-width: 0; font: 600 15px/1.2 var(--fd); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 760px) { .tt-splash .in { padding: 8px 20px 8px 10px; gap: 10px; } .tt-splash .in .avatar { width: 42px !important; height: 42px !important; } .tt-side .tt-rk { display: none; } }
+/* the fork choice tiles wear the colour of their arrow on the board (white first route, gold second) */
+.tt .btn.tt-opt.r0 .ic { background: #ffffff; border-radius: 10px; box-shadow: inset 0 0 0 2.5px var(--ink); }
+.tt .btn.tt-opt.r1 .ic { background: #ffc93c; border-radius: 10px; box-shadow: inset 0 0 0 2.5px var(--ink); }
+.tt.lineup .tt-side .tt-rk { display: none; } /* everyone is 1st before the first turn; the roll chips need the room */
+.tt.lineup .tt-side .tt-sp, .tt.lineup .tt-side .tt-tr { display: none; }

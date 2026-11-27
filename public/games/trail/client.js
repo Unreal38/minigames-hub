@@ -108,11 +108,13 @@ export function mount(app, ctx) {
   const pet = (f, size = 30, cls = 'tt-pi') => petImg({ sp: f.sp, lv: 14, look: f.look || null, name: f.name || petName(f.sp) }, size, cls);
 
   // ----- the camera follows whoever is playing; between rounds it shows the whole island -----
+  let peekUntil = 0; // each round opens with a short look over the whole island, so everyone sees where the wild pets are
   function camFocus() {
     if (!scene || !S) return;
     const turnish = S.ph === 'play' && ['turn', 'rolled', 'walk', 'land', 'next'].includes(S.stage) && S.turn >= 0 || (S.pend && !['pact'].includes(S.pend.k));
     scene.focus(turnish ? (S.pend && S.pend.k !== 'pact' ? S.pend.s : S.turn) : -1);
-    scene.setMap(mapOn);
+    scene.setMap(mapOn || Date.now() < peekUntil);
+    scene.setFork?.(S.ph === 'play' && S.pend?.k === 'fork' ? S.pl[S.pend.s].pos : null, S.pend?.opts || []);
     scene.setLineup?.(lineMode());
     root.classList.toggle('lineup', !!lineMode()); root.classList.toggle('intro', S?.ph === 'play' && S.stage === 'intro');
   }
@@ -328,7 +330,7 @@ export function mount(app, ctx) {
         ${items || swaps ? `<div class="tt-acts">${items}${swaps}</div>` : ''}`;
     }
     if (P.k === 'fork') return `${head(L('Which way?', 'Którędy?'), L('Glowing stones have a wild pet: stop exactly on one to meet it', 'Świecące kamienie mają dzikiego zwierzaka: zatrzymaj się dokładnie na nim, by go spotkać'))}
-      <div class="tt-acts">${P.opts.map(j => { const n = petsAhead(j); return opt('fork', `<svg class="tt-ii" viewBox="0 0 32 32" aria-hidden="true"><path d="M15 6v23" ${IK}/><path d="M6 8h16l4 3.5-4 3.5H6z" fill="#ffc93c" ${IK}/><path d="M26 17H10l-4 3.5 4 3.5h16z" fill="#fff6e2" ${IK}/></svg>`, esc(routeName(j)), n ? L(`${n} wild pet${n > 1 ? 's' : ''} on the way`, `dzikie zwierzaki po drodze: ${n}`) : L('no wild pets in sight', 'nie widać dzikich zwierzaków'), `data-j="${j}"`, n ? 'hot' : ''); }).join('')}</div>`;
+      <div class="tt-acts">${P.opts.map(j => { const n = petsAhead(j); return opt('fork', `<svg class="tt-ii" viewBox="0 0 32 32" aria-hidden="true"><path d="M15 6v23" ${IK}/><path d="M6 8h16l4 3.5-4 3.5H6z" fill="#ffc93c" ${IK}/><path d="M26 17H10l-4 3.5 4 3.5h16z" fill="#fff6e2" ${IK}/></svg>`, esc(routeName(j)), n ? L(`${n} wild pet${n > 1 ? 's' : ''} on the way`, `dzikie zwierzaki po drodze: ${n}`) : L('no wild pets in sight', 'nie widać dzikich zwierzaków'), `data-j="${j}"`, (n ? 'hot ' : '') + 'r' + P.opts.indexOf(j)); }).join('')}</div>`;
     if (P.k === 'shop') return `${head(L('The stall', 'Stragan'), L(`You have ${treatsW(p.treats)} and ${p.items.length}/${ITEM_MAX} items`, `Masz ${treatsW(p.treats)} i przedmioty: ${p.items.length}/${ITEM_MAX}`))}
       <div class="tt-acts shop">${ITEM_IDS.map(k => opt('buy', itemIc(k), esc(ITEMS[k].name), esc(ITEMS[k].tx), `data-k="${k}"${ITEMS[k].c > p.treats || p.items.length >= ITEM_MAX ? ' disabled' : ''}`, '', priceTag(ITEMS[k].c))).join('')}</div>
       <div class="tt-acts">${btn('buy', L('Walk on', 'Idź dalej'), '', 'data-k=""')}</div>`;
@@ -448,7 +450,8 @@ export function mount(app, ctx) {
   function playEv(e) {
     const s = e.s, P = e.s != null ? S.seats[s] : null; void P;
     switch (e.t) {
-      case 'round': big(L(`Round ${e.r}`, `Runda ${e.r}`), L(`of ${S.rounds}`, `z ${S.rounds}`), 1500); say(L(`Round ${e.r} of ${S.rounds}`, `Runda ${e.r} z ${S.rounds}`)); break;
+      case 'round': big(L(`Round ${e.r}`, `Runda ${e.r}`), L(`of ${S.rounds}`, `z ${S.rounds}`), 1500); say(L(`Round ${e.r} of ${S.rounds}: the wild pets wait on the glowing stones`, `Runda ${e.r} z ${S.rounds}: dzikie zwierzaki czekają na świecących kamieniach`));
+        peekUntil = Date.now() + 3200; camFocus(); setTimeout(() => !destroyed && camFocus(), 3250); break;
       case 'firstgo': big(L('Who goes first?', 'Kto zaczyna?'), L('Everyone rolls a die', 'Każdy rzuca kością'), 1800); say(L('Everyone rolls a die. The highest roll goes first.', 'Każdy rzuca kością. Zaczyna najwyższy wynik.')); break;
       case 'first': throwDice(s, [e.d], e.d); sfx.draw(); say(who(s, L(`You roll <b>${e.d}</b>`, `Wyrzucasz <b>${e.d}</b>`), L(`{n} rolls <b>${e.d}</b>`, `{n} wyrzuca <b>${e.d}</b>`)) + (e.tie ? L(' in the tie-break', ' w dogrywce') : '')); break;
       case 'firsttie': say(L(`A tie! ${e.who.map(nm).join(', ')} roll again.`, `Remis! ${e.who.map(nm).join(', ')} rzucają jeszcze raz.`)); break;

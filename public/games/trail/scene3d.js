@@ -26,10 +26,35 @@ const POND = { x: -1, z: 0, rx: 4.2, rz: 3 };
 const STREAM_Z = .95;
 const HILL = { x: 3.8, z: -5.6, r: 2.7 };
 // the kinds of stone: top colour, and whether the whole-map view labels it
+// Each kind has its own bold colour and an icon painted on top (Kuba 2026-11-27: stones should be distinct at a glance,
+// like a party board's spaces): gold + for treats, pink basket for a picnic, red thorns and − for brambles...
 const STONE = {
-  treat: '#ffd36b', picnic: '#ff9fc8', bramble: '#9b6b4a', stall: '#ffffff', nest: '#fff1c4', bench: '#b994f0',
-  well: '#7cc6ff', spring: '#9fe6f0', den: '#8a7aa8',
+  treat: '#ffc93c', picnic: '#ff7fb0', bramble: '#e5543b', stall: '#ffffff', nest: '#fff1c4', bench: '#b994f0',
+  well: '#5fb4ff', spring: '#6fe0d6', den: '#6b5a9a',
 };
+const INK = '#3b2219';
+// the icon for a stone kind, drawn once on a small canvas (transparent round, read with the top of the picture away from the camera)
+const iconTex = new Map();
+function stoneIcon(kind) {
+  if (iconTex.has(kind)) return iconTex.get(kind);
+  const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+  g.lineJoin = g.lineCap = 'round'; g.lineWidth = 7; g.strokeStyle = INK;
+  const fill = (col, path) => { g.fillStyle = col; g.beginPath(); path(); g.fill(); g.stroke(); };
+  const circle = (x, y, r) => () => g.arc(x, y, r, 0, Math.PI * 2);
+  const plus = (x, y, r, col = '#fff') => { g.lineWidth = 16; g.strokeStyle = INK; g.beginPath(); g.moveTo(x - r, y); g.lineTo(x + r, y); g.moveTo(x, y - r); g.lineTo(x, y + r); g.stroke(); g.lineWidth = 7; g.strokeStyle = col; g.beginPath(); g.moveTo(x - r, y); g.lineTo(x + r, y); g.moveTo(x, y - r); g.lineTo(x, y + r); g.stroke(); g.strokeStyle = INK; };
+  const minus = (x, y, r) => { g.lineWidth = 16; g.beginPath(); g.moveTo(x - r, y); g.lineTo(x + r, y); g.stroke(); g.lineWidth = 7; g.strokeStyle = '#fff'; g.beginPath(); g.moveTo(x - r, y); g.lineTo(x + r, y); g.stroke(); g.strokeStyle = INK; };
+  if (kind === 'treat') { fill('#d9944f', circle(56, 66, 30)); g.fillStyle = INK; for (const [x, y] of [[46, 56], [64, 60], [52, 76], [68, 78]]) { g.beginPath(); g.arc(x, y, 4.5, 0, 7); g.fill(); } plus(96, 34, 15); }
+  else if (kind === 'picnic') { fill('#c98a52', () => { g.moveTo(30, 58); g.lineTo(98, 58); g.lineTo(90, 100); g.lineTo(38, 100); g.closePath(); }); g.beginPath(); g.arc(64, 58, 24, Math.PI, 0); g.stroke(); fill('#ff5c8a', () => g.rect(30, 52, 68, 12)); plus(100, 32, 13); }
+  else if (kind === 'bramble') { fill('#4d7a32', () => { for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2, r = k % 2 ? 18 : 38; g.lineTo(58 + Math.cos(a) * r, 68 + Math.sin(a) * r); } g.closePath(); }); minus(98, 32, 14); }
+  else if (kind === 'stall') { fill('#ffd36b', () => g.rect(34, 52, 60, 46)); g.beginPath(); g.arc(64, 52, 16, Math.PI, 0); g.stroke(); fill('#ff7a59', () => g.rect(34, 52, 60, 12)); }
+  else if (kind === 'nest') { fill('#b07a4a', () => g.ellipse(64, 84, 38, 16, 0, 0, Math.PI * 2)); fill('#fff6e2', () => g.ellipse(64, 60, 20, 26, 0, 0, Math.PI * 2)); g.fillStyle = '#9fd8ff'; g.beginPath(); g.arc(58, 54, 5, 0, 7); g.arc(70, 66, 4, 0, 7); g.fill(); }
+  else if (kind === 'bench') fill('#ff6f9a', () => { g.moveTo(64, 100); g.bezierCurveTo(14, 66, 30, 26, 64, 46); g.bezierCurveTo(98, 26, 114, 66, 64, 100); });
+  else if (kind === 'well') { fill('#ffe27a', () => { for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k / 10 * Math.PI * 2, r = k % 2 ? 17 : 40; g.lineTo(64 + Math.cos(a) * r, 66 + Math.sin(a) * r); } g.closePath(); }); }
+  else if (kind === 'spring') { g.lineWidth = 9; for (const x of [44, 64, 84]) { g.beginPath(); g.moveTo(x, 96); g.bezierCurveTo(x - 14, 78, x + 14, 64, x, 44); g.stroke(); } g.lineWidth = 4; g.strokeStyle = '#fff'; for (const x of [44, 64, 84]) { g.beginPath(); g.moveTo(x, 96); g.bezierCurveTo(x - 14, 78, x + 14, 64, x, 44); g.stroke(); } }
+  else if (kind === 'den') { fill('#ffd34d', () => { for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k / 10 * Math.PI * 2, r = k % 2 ? 16 : 38; g.lineTo(64 + Math.cos(a) * r, 64 + Math.sin(a) * r); } g.closePath(); }); g.fillStyle = INK; g.beginPath(); g.arc(57, 62, 3.5, 0, 7); g.arc(71, 62, 3.5, 0, 7); g.fill(); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  iconTex.set(kind, t); return t;
+}
 export const SPECIAL = new Set(['stall', 'nest', 'bench', 'well', 'spring', 'den', 'picnic']);
 const wrapA = a => { a = (a + Math.PI) % (Math.PI * 2); return (a < 0 ? a + Math.PI * 2 : a) - Math.PI; };
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -101,16 +126,18 @@ export function createScene(canvas, { onFrame } = {}) {
   const P = NODES.map(n => new THREE.Vector3(n.x, SY, n.z)), START = new THREE.Vector3();
   const nodeP = i => (i < 0 ? START : P[i]);
   const DIRT = snowy ? '#c9a26a' : '#d9b77c', DIRT_EDGE = snowy ? '#8f6b3e' : '#a9814f'; // the path is cleared of snow in winter too, so the stones stand out (Kuba 2026-11-27)
+  const icons = new THREE.Group(); scene.add(icons); let iconYaw = 99;
+  const ICON_GEO = new THREE.PlaneGeometry(SR * 1.75, SR * 1.75), iconMats = new Map();
+  const iconMat = kind => { if (!iconMats.has(kind)) iconMats.set(kind, new THREE.MeshStandardMaterial({ map: stoneIcon(kind), transparent: true, roughness: .95, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 })); return iconMats.get(kind); };
   NODES.forEach((n, i) => {
     const kind = n.kind, top = STONE[kind] || '#ffd36b';
     const g = new THREE.Group(); g.position.set(n.x, 0, n.z); g.rotation.y = i * .7; world.add(g);
     // a chunky grey base, a bright cream lip and the coloured top, so every stone you can stand on pops off the lawn
     cyl(g, SR + .1, SR + .2, .16, snowy ? '#9aa6b6' : '#8d867e', 0, .06, 0, 9);
     cyl(g, SR + .1, SR + .1, .05, '#fff6e2', 0, .135, 0, 9);
-    cyl(g, SR, SR + .03, .08, kind === 'bramble' && snowy ? '#bfe6ff' : top, 0, .14, 0, 9);
-    if (kind === 'treat') for (let k = 0; k < 3; k++) cyl(g, .1, .1, .05, '#c98a52', Math.cos(k * 2.1) * .25, .2, Math.sin(k * 2.1) * .25, 8);
-    if (kind === 'bramble') for (let k = 0; k < 4; k++) { const t = put(g, new THREE.TetrahedronGeometry(.17), M(snowy ? '#e8f6ff' : '#5d8a3a'), Math.cos(k * 1.6) * .32, .25, Math.sin(k * 1.6) * .32); t.rotation.set(k, k * 2, 0); }
-    if (kind === 'picnic') { box(g, .62, .03, .62, '#ffffff', 0, .195, 0); for (let a = 0; a < 2; a++) for (let b = 0; b < 2; b++) box(g, .3, .035, .3, '#ff6f9a', -.15 + a * .3, .2, -.15 + b * .3).visible = (a + b) % 2 === 0; }
+    cyl(g, SR, SR + .03, .08, top, 0, .14, 0, 9);
+    // the kind's icon on top, the right way up for the camera (it is not part of the merged island: it has a picture)
+    if (STONE[kind]) { const ic = new THREE.Mesh(ICON_GEO, iconMat(kind)); ic.rotation.x = -Math.PI / 2; ic.position.set(n.x, .186, n.z); icons.add(ic); }
     // dirt dots to the next stones, and plank bridges over the stream
     for (const j of n.next) { const b = NODES[j];
       // a dirt path with a darker edge from stone to stone (cut where a bridge crosses the stream)
@@ -445,6 +472,8 @@ export function createScene(canvas, { onFrame } = {}) {
       host.g.children[0] && wiggle(host.g.children[0], T, host.seed, .6);
       if (host.g.visible) blob(host.x, host.z, .4); }
     stepDice(performance.now(), blob);
+    { const yaw = Math.atan2(camera.position.x - camL.x, camera.position.z - camL.z); if (Math.abs(yaw - iconYaw) > .01) { iconYaw = yaw; for (const ic of icons.children) ic.rotation.z = yaw; } } // icons stay upright for the camera
+    for (const a of forkArrows) { a.position.y = .55 + Math.sin(T * 4 + a.userData.k) * .09; }
     blobs.count = nb; blobs.instanceMatrix.needsUpdate = true;
     // camera: a close-up that follows the player in focus, or the whole island
     const f = focus >= 0 && !mapView && !lineup ? folk[focus] : null;
@@ -495,8 +524,26 @@ export function createScene(canvas, { onFrame } = {}) {
     return out;
   }
 
+  // arrows on the board at a fork, one down each way (white for the first route, gold for the second, like the signposts
+  // and the choice tiles), bobbing over the next stone while the walker decides
+  let forkArrows = [], forkKey = '';
+  const ARROW = (() => { const sh = new THREE.Shape(); sh.moveTo(0, .5); sh.lineTo(.42, 0); sh.lineTo(.17, 0); sh.lineTo(.17, -.42); sh.lineTo(-.17, -.42); sh.lineTo(-.17, 0); sh.lineTo(-.42, 0); sh.closePath();
+    const g = new THREE.ExtrudeGeometry(sh, { depth: .12, bevelEnabled: false }); g.rotateX(Math.PI / 2); g.translate(0, .12, 0); return g; })(); // the tip points along +z, turned toward the next stone
+  function setFork(at, opts) {
+    const key = at == null ? '' : at + ':' + opts.join(',');
+    if (key === forkKey) return; forkKey = key;
+    for (const a of forkArrows) { scene.remove(a); a.material.dispose(); for (const c of a.children) c.material.dispose(); } forkArrows = [];
+    if (at == null) return;
+    const from = nodeP(at);
+    opts.forEach((j, k) => { const to = P[j]; if (!from || !to) return;
+      const m = new THREE.Mesh(ARROW, flat(k ? '#ffc93c' : '#ffffff', { emissive: k ? '#5a3d00' : '#3a3a3a' }));
+      shell(m, 1.12);
+      m.position.set(lerp(from.x, to.x, .62), .55, lerp(from.z, to.z, .62)); m.rotation.y = Math.atan2(to.x - from.x, to.z - from.z); m.userData.k = k * 1.6;
+      scene.add(m); forkArrows.push(m); });
+  }
+
   return {
-    setState, walk, cue, roll,
+    setState, walk, cue, roll, setFork,
     rolling: () => thrown.length > 0,
     focus(s) { focus = s; },
     setLineup,
