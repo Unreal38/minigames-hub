@@ -169,6 +169,12 @@ export function resettle(pile, apply = true) {
 }
 // Would taking stick s out make another stick drop?
 export function dropsWithout(pile, s) { const g = s.g; s.g = 1; const m = resettle(pile, false); s.g = g; return m; }
+// What pulling stick s puts at risk, for the hints: `fall` = every stick that would drop once s is gone (a sure
+// "moved") plus every stick lying on top of it (dragging those fills the meter fast); `touch` = the rest it touches.
+export function atRisk(pile, s, st = startPull(pile, s)) {
+  const fall = [...new Set([...dropsWithout(pile, s).map(m => m.id), ...st.onTop])];
+  return { fall, touch: st.touch.filter(i => !fall.includes(i)) };
+}
 
 // The pulls worth trying for stick s: along itself both ways, sideways both ways, and straight up with the Hook.
 // Each comes back with the meter it would reach (FULL when it does not get the stick out cleanly).

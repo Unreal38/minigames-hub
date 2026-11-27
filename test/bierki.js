@@ -1,7 +1,7 @@
 // Bierki test: the pile rests properly and stays put, the pull check (free sticks come out, buried ones do not, speed
 // costs), a person's turn through act(), the Hook's one lift a turn, the clock, and whole games played by bots.
 import * as bierki from '../server/games/bierki.js';
-import { LEN, R, MM, FULL, SET_BONUS, makePile, setFor, totalOf, ends, segDist, startPull, advance, isClear, resettle, dropsWithout, plans } from '../public/games/bierki/rules.js';
+import { LEN, R, MM, FULL, SET_BONUS, makePile, setFor, totalOf, ends, segDist, startPull, advance, isClear, resettle, dropsWithout, plans, atRisk } from '../public/games/bierki/rules.js';
 
 const fail = m => { console.error('FAIL', m); process.exit(1); };
 const players = [{ id: 'a', name: 'Ana', color: '#ff8fab', av: [0, 0, 0, 0] }, { id: 'b', name: 'Bo', color: '#7ed3b2', av: [1, 1, 1, 1] }];
@@ -45,6 +45,17 @@ for (let seed = 1; seed <= 60; seed++) for (const big of [false, true]) {
     if (!(quick.meter > slow.meter * 2)) fail('a fast pull must fill the meter faster');
     if (quick.meter !== again.meter) fail('the same pull must give the same meter');
     if (startPull(p, s, 30).meter !== 30) fail('what a stick already rubbed carries over');
+  }
+}
+
+// ----- the at-risk hints match what the server judges -----
+for (let seed = 1; seed <= 20; seed++) {
+  const p = makePile(seed, seed % 2 === 0);
+  for (const s of p) {
+    const r = atRisk(p, s), st = startPull(p, s);
+    for (const m of dropsWithout(p, s)) if (!r.fall.includes(m.id)) fail('a stick that drops must be shown at risk');
+    for (const id of st.onTop) if (!r.fall.includes(id)) fail('a stick lying on top must be shown at risk');
+    if (r.touch.some(id => r.fall.includes(id) || !st.touch.includes(id))) fail('touch hints are the other touching sticks');
   }
 }
 
