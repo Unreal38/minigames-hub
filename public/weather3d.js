@@ -139,7 +139,7 @@ export function skyAurora({ fit = false } = {}) {
     if (!a) {
       camera.getWorldDirection(_f); const pitch = Math.asin(Math.max(-1, Math.min(1, _f.y))), half = camera.fov * Math.PI / 360;
       _f.y = 0; if (_f.lengthSq() < 1e-4) _f.set(0, 0, -1); _f.normalize();
-      a = { yaw: Math.atan2(_f.x, _f.z), el: fit ? Math.min(0, pitch + half - .52) : 0 }; at.set(camera, a);
+      a = { yaw: Math.atan2(_f.x, _f.z), el: fit ? Math.min(0, pitch + half - .52) : -.14 }; // sunk a little, so the hems rise from the horizon (Kuba: on Pet Farm it hung too high) at.set(camera, a);
     }
     AUR.forEach(([, base, h, ph, k], b) => { for (let j = 0; j <= SEG; j++) {
       const u = j / SEG, f = -W + 2 * W * u + Math.sin(T * .4 + j * .13 + ph) * .01, hem = base + Math.sin(f * 4 + T * .3 + ph) * .045 + Math.sin(f * 9 - T * .23 + ph) * .018;

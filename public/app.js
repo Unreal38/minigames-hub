@@ -28,7 +28,7 @@ import { PEEKS, peekPick, setPeek, setPeekHost, WX_PEEKS, wxPeekPick, setWxPeek,
 import { initNotice, onNotice } from './notice.js';
 import { initAdmin, openAdmin, openModerate, openReport, onMod, onModMe, muteNote, openCount as modOpenCount } from './admin.js';
 import { L, PL, LANG, LOCALE, cnt, word, num, ord, setLang, onLangSwitch, picked } from './i18n.js';
-import { weatherAt, weatherNext, wxIcon, isNight as wxNight, skyPhase, WX_LOOK, sunHour } from './weather.js';
+import { WEATHER, weatherAt, weatherNext, wxIcon, isNight as wxNight, skyPhase, WX_LOOK, sunHour } from './weather.js';
 import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, packOf, packIds, needsOwning, wearable, lockedIn, OUTFITS, SEASON, SEASONS, seasonOn, seasonNow, seasonOf, onSale } from './avatar.js';
 
 export const SITE = 'Zatoka Gier';
@@ -1789,7 +1789,7 @@ function paintWeather() { paintSkyWx(); const el = document.getElementById('weat
 // The hub's sky follows the same weather (body.wx-<kind>, the block "the world weather on the hub sky" in style.css):
 // greyer under cloud and rain, faster clouds in the wind, a rainbow after rain. Rain falls in one layer behind the panels
 // (.wxfall, moved by the compositor only). A host previewing a kind (Account menu) sees that one.
-const WX_CLS = ['wx-cloudy', 'wx-rain', 'wx-wind', 'wx-rainbow'];
+const WX_CLS = Object.keys(WEATHER).filter(k => k !== 'sunny').map(k => 'wx-' + k); // every kind, so a new one (the aurora) is never left off
 function paintSkyWx() {
   const k = peekWeather() || weatherAt().kind, b = document.body, want = k === 'sunny' ? '' : 'wx-' + k;
   if (want && !document.querySelector('.wxfall')) { const f = document.createElement('div'); f.className = 'wxfall'; f.setAttribute('aria-hidden', 'true'); b.prepend(f); }
