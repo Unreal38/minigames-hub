@@ -48,7 +48,7 @@ export function paintTile(g, id, pet, k = 0) {
   }
   g.fillStyle = look.ink || NUM_COL[elOf(id)]; g.font = `700 ${numOf(id) >= 10 ? 70 : 78}px Rubik, Nunito, sans-serif`;
   g.fillText(String(numOf(id)), W / 2, 76);
-  if (pet) { g.drawImage(stickerOf(pet), 20 - 4, 80 - 4, 96, 96); g.drawImage(pet, 20, 80, 88, 88); }
+  if (pet) { const s = 78, x = (W - s) / 2, y = 82, e = s * 4 / 88; g.drawImage(stickerOf(pet), x - e, y - e, s + e * 2, s + e * 2); g.drawImage(pet, x, y, s, s); } // ends 6 px above the bottom edge, sticker edge included
 }
 
 // HTML tile for the tray (and the results sheet)
