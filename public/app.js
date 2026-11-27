@@ -1490,9 +1490,19 @@ function partyPaint(room) {
 let curtEl = null, curtTimer = 0, curtOpenT = 0, curtBackT = 0, curtKind = '', curtShutAt = 0, curtGame = '';
 const CURT_SHUT_MS = 680; // the halves take .55 s to meet (style.css .pc-h)
 // Resolves once the curtain is fully shut (at once when it is open or long shut): swap what is behind it after this.
+// Kuba (2026-11-27): the page underneath stays in view until the curtain has really closed, so this waits for the
+// halves' own transitionend (a slow phone drops frames), with a timer only as a fallback.
 function curtainGate() {
-  const left = curtEl?.classList.contains('shut') ? CURT_SHUT_MS - (Date.now() - curtShutAt) : 0;
-  return left > 0 ? new Promise(res => setTimeout(res, left)) : Promise.resolve();
+  if (!curtEl?.classList.contains('shut')) return Promise.resolve();
+  const half = curtEl.querySelector('.pc-l'), left = CURT_SHUT_MS - (Date.now() - curtShutAt);
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return new Promise(res => setTimeout(res, Math.max(0, 350 - (Date.now() - curtShutAt)))); // the halves fade in instead
+  if (half && getComputedStyle(half).transform === 'none') return Promise.resolve(); // already fully shut
+  return new Promise(res => {
+    const done = () => { half?.removeEventListener('transitionend', end); clearTimeout(t); res(); };
+    const end = e => { if (e.target === half && e.propertyName === 'transform' && curtEl.classList.contains('shut')) done(); };
+    half?.addEventListener('transitionend', end);
+    const t = setTimeout(done, Math.max(left, 0) + 900);
+  });
 }
 // This page has drawn the held match: tell the server (after two frames, so the first picture is really on screen).
 let readyFor = 0;
