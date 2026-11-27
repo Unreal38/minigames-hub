@@ -150,9 +150,13 @@ export function advance(pile, st, to, ms = 1e6) {
 // Is the held stick free of every other stick (and not simply still in its place)?
 export function isClear(pile, st) {
   const o = st.off; if (o.x * o.x + o.y * o.y + o.z * o.z < .0625) return false;
-  const [a, b] = ends(st.s, o);
-  for (const p of pile) if (live(p, st.s) && segDist(a, b, ...ends(p)).d <= 2 * R + .05) return false;
-  return true;
+  return !contacts(pile, st, true).length;
+}
+// The sticks the held stick is touching where it is now (close enough that it is not free of them yet).
+export function contacts(pile, st, any = false) {
+  const [a, b] = ends(st.s, st.off), out = [];
+  for (const p of pile) if (live(p, st.s) && segDist(a, b, ...ends(p)).d <= 2 * R + .05) { out.push(p.id); if (any) break; }
+  return out;
 }
 // A stick has left the pile: lay every later stick down again. Returns the sticks that dropped (they moved).
 export function resettle(pile, apply = true) {

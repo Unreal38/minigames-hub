@@ -57,6 +57,7 @@ body.in-game { overflow: hidden; }
 .bk .bk-bar p { margin: 0; font-family: var(--fd); font-weight: 500; font-size: 15px; background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); box-shadow: 0 3px 0 #23401c55; border-radius: 16px; padding: 5px 14px; text-align: center; text-wrap: balance; max-width: min(640px, 100%); }
 .bk .bk-bar p:empty { display: none; }
 .bk .bk-bar p b { color: var(--acc-tx); font-weight: 600; }
+.bk .bk-bar p em.bk-touch { font-style: normal; font-weight: 700; background: #f08a1c; color: #fff; border-radius: 8px; padding: 0 6px; white-space: nowrap; }
 .bk .bk-bar p em.bk-fall { font-style: normal; font-weight: 700; background: #e8287f; color: #fff; border-radius: 8px; padding: 0 6px; white-space: nowrap; }
 .bk .bk-pop { position: absolute; z-index: 3; transform: translate(-50%, -50%); font-family: var(--fd); font-weight: 700; font-size: 30px; color: #fff; -webkit-text-stroke: 5px var(--ink); paint-order: stroke fill; text-shadow: 0 3px 0 var(--ink); pointer-events: none; animation: bkpop 1.25s ease-out both; }
 @keyframes bkpop { 0% { opacity: 0; transform: translate(-50%, -30%) scale(.5); } 15% { opacity: 1; transform: translate(-50%, -80%) scale(1.15); } 100% { opacity: 0; transform: translate(-50%, -260%) scale(1); } }
