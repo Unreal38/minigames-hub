@@ -67,7 +67,6 @@ function streaks(n, u) {
 
 const BOW = ['#e8615a', '#ffb547', '#ffe066', '#7fd08a', '#6fb7e8', '#b79cf0']; // Pet Farm's rainbow
 const _f = new THREE.Vector3();
-const BOW_R = Math.tan(24 * Math.PI / 180); // the arch is about 48 degrees across, its feet on the horizon
 
 // One band of the arch: a little more than a half circle, its feet fading into the haze below the horizon.
 function bowBand(R) {
@@ -90,7 +89,7 @@ export function weatherLayer(scene, { size = 0 } = {}) {
   root.add(rain, wind, bow);
   rain.visible = wind.visible = bow.visible = false;
 
-  const bowYaw = new WeakMap(); // camera -> the fixed compass direction of the rainbow
+  const bowAt = new WeakMap(); // camera -> where in its sky the rainbow sits (compass direction, height, size)
   let want = { rain: 0, wind: 0, bow: 0 }, now = { rain: 0, wind: 0, bow: 0 }, S = size, D = size / 1.3, lastT = -1, nextLook = 0;
   const ray = new THREE.Raycaster(), mid = new THREE.Vector2();
   const solid = o => o.isMesh && o.visible && !o.userData.sky && !o.userData.cloud && !o.material?.transparent;
@@ -121,14 +120,17 @@ export function weatherLayer(scene, { size = 0 } = {}) {
     rain.visible = now.rain > .01 && !reduced; wind.visible = now.wind > .01 && !reduced;
     bow.visible = now.bow > .01;
     if (bow.visible) { // part of the sky: fixed in the world like the moon, only carried along as the camera moves
-      let yaw = bowYaw.get(camera);
-      if (yaw === undefined) { // it settles over the far side of whatever this camera first looks at, then never turns
+      let at = bowAt.get(camera);
+      if (!at) { // it settles where this camera first looks, sized and raised so its top shows, then never moves on screen by itself
+        const pitch = Math.asin(Math.max(-1, Math.min(1, _f.y))), half = camera.fov * Math.PI / 360;
+        const hfov = 2 * Math.atan(Math.tan(half) * (camera.aspect || 1)), A = Math.min(.52, Math.max(.21, hfov * .42));
+        const el = Math.max(-1.05, Math.min(-.035, pitch + half - .09 - A)); // top a little under the top of the view; on the horizon when the camera sees plenty of sky
         _f.y = 0; if (_f.lengthSq() < 1e-4) _f.set(0, 0, -1); _f.normalize();
-        yaw = Math.atan2(_f.x, _f.z); bowYaw.set(camera, yaw);
+        at = { yaw: Math.atan2(_f.x, _f.z), el, k: Math.tan(A) }; bowAt.set(camera, at);
       }
-      const far = Math.min(240, camera.far * .85), r = far * BOW_R; // out past the scenery, always the same size in the sky
-      bow.position.set(camera.position.x + Math.sin(yaw) * far, camera.position.y - far * .03, camera.position.z + Math.cos(yaw) * far);
-      bow.rotation.set(0, yaw, 0); bow.scale.setScalar(r / 58); bow.updateMatrixWorld(true);
+      const far = Math.min(240, camera.far * .85), h = Math.cos(at.el) * far; // out past the scenery, always the same size in the sky
+      bow.position.set(camera.position.x + Math.sin(at.yaw) * h, camera.position.y + Math.sin(at.el) * far, camera.position.z + Math.cos(at.yaw) * h);
+      bow.rotation.set(-at.el, at.yaw, 0, 'YXZ'); bow.scale.setScalar(far * at.k / 58); bow.updateMatrixWorld(true);
       for (const m of bow.children) m.material.opacity = now.bow * want.bowA;
     }
   }
@@ -139,7 +141,7 @@ export function weatherLayer(scene, { size = 0 } = {}) {
 
   function set(kind, night = false) {
     const L = WX_LOOK[kind] || WX_LOOK.sunny;
-    want = { rain: L.fall, wind: L.wind, bow: L.bow, bowA: night ? .14 : .38 };
+    want = { rain: L.fall, wind: L.wind, bow: L.bow, bowA: night ? .22 : .55 };
     R.uCol.value.set(night ? '#a9b6e8' : '#a8c4e4'); W.uCol.value.set(night ? '#c8d0ff' : '#ffffff');
   }
   set(wxShown());

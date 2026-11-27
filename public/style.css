@@ -2001,10 +2001,10 @@ body.sky.skynight.wx-rain:not(.in-game) .wxfall { opacity: .32; }
 @keyframes wxrain { to { transform: translateY(220px); } }
 /* the rainbow: Pet Farm's six colours in one big arch across the page's sky, still. It rises from the bottom of the
    window and stays put as the page scrolls (fixed, like the clouds); its feet fade out towards the bottom. */
-body.sky.wx-rainbow:not(.in-game) .wxfall { display: block; top: 0; opacity: .5; --bowr: min(86vh, max(46vw, 60vh));
-  background: radial-gradient(circle var(--bowr) at 50% 100%, transparent 86%, #b79cf0 86% 88.4%, #6fb7e8 88.4% 90.7%, #7fd08a 90.7% 93%, #ffe066 93% 95.4%, #ffb547 95.4% 97.7%, #e8615a 97.7% 100%, transparent 100%) no-repeat;
-  -webkit-mask: linear-gradient(#000 45%, transparent 98%); mask: linear-gradient(#000 45%, transparent 98%); }
-body.sky.skynight.wx-rainbow:not(.in-game) .wxfall { opacity: .2; }
+body.sky.wx-rainbow:not(.in-game) .wxfall { display: block; top: 0; opacity: .62; --bowr: min(94vh, max(52vw, 66vh));
+  background: radial-gradient(circle var(--bowr) at 50% 100%, transparent 76%, #b79cf0 76% 80%, #6fb7e8 80% 84%, #7fd08a 84% 88%, #ffe066 88% 92%, #ffb547 92% 96%, #e8615a 96% 100%, transparent 100%) no-repeat;
+  -webkit-mask: linear-gradient(#000 55%, transparent 100%); mask: linear-gradient(#000 55%, transparent 100%); }
+body.sky.skynight.wx-rainbow:not(.in-game) .wxfall { opacity: .26; }
 html.gfx-low body.sky.wx-rain .wxfall { display: none; }
 @media (prefers-reduced-motion: reduce) { body.sky.wx-rain .wxfall { display: none; } }
 /* the hero banner's plain sky greys too (a bought isle sky keeps its look; the rain falls in its 3D isle either way) */
