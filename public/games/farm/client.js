@@ -1137,14 +1137,15 @@ export function mount(app, ctx) {
       <button type="button" class="round okb" data-a="ok" ${g.ok ? '' : 'disabled'} title="${L(g.id ? 'Move here (Enter)' : 'Place (Enter)', g.id ? 'Przenieś tutaj (Enter)' : 'Postaw (Enter)')}" aria-label="${L(g.id ? 'Move here' : 'Place', g.id ? 'Przenieś tutaj' : 'Postaw')}">${I.ok}</button>`;
   }
   let floatAt = '';
-  // Above the piece's outline on screen, never over it; below it when the top of the screen is too close.
+  // Under the piece's outline on screen, never over it; above it when the bottom bars are too close.
   function placeFloat(x, top, bottom, front) {
     const fl = $('pf-gfloat'); if (!fl) return;
     const show = !!scene?.ghost() && front; if (fl.hidden === show) fl.hidden = !show;
     if (!show) return;
     const z = uiz(), W = root.clientWidth / z, w = fl.offsetWidth || 150, h = fl.offsetHeight || 48, gap = 10;
     const left = Math.round(Math.max(w / 2 + 8, Math.min(W - w / 2 - 8, x / z)));
-    let y = top / z - gap - h; if (y < 60) y = bottom / z + gap; // no room above: just under it
+    const dock = root.querySelector('.dock')?.getBoundingClientRect(), floor = (dock && dock.height ? dock.top - root.getBoundingClientRect().top : root.clientHeight) / z - 8;
+    let y = bottom / z + gap; if (y + h > floor) y = top / z - gap - h; // no room below (the bars at the bottom): just above it
     y = Math.round(y);
     const k = left + ',' + y; if (k === floatAt) return; floatAt = k;
     fl.style.transform = `translate(${left}px, ${y}px) translateX(-50%)`;
