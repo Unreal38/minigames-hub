@@ -127,3 +127,4 @@ body:has(.mg) #toasts { top: 118px; }
 body.night .mg .mg-tag.turn,
 body.night .mg .holecard li.won,
 body.night .mg .mg-card tr.won { color: var(--ink); }
+.mg .list em .pen { font-size: 10px; font-weight: 700; opacity: .75; margin-left: 1px; }

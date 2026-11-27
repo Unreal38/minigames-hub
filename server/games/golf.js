@@ -57,7 +57,7 @@ function nextHole(G, now) {
   if (G.order[G.hi] == null) { G.order[G.hi] = makeHole(G.names ||= []); G.mirror[G.hi] = false; }
   G.H = buildHole(G.order[G.hi], G.mirror[G.hi]);
   G.H.key = G.gid + ':' + G.hi;
-  G.balls = G.seats.map(() => ({ x: G.H.tee.x, z: G.H.tee.z, strokes: 0, sunk: 0, out: false, busy: 0, shot: null, think: 0 }));
+  G.balls = G.seats.map(() => ({ x: G.H.tee.x, z: G.H.tee.z, strokes: 0, pen: 0, sunk: 0, out: false, busy: 0, shot: null, think: 0 }));
   G.holeRes = null;
   G.stage = 'bet'; G.stageEnd = now + LOOK_MS;
   pushEv(G, { t: 'hole', i: G.hi });
@@ -92,12 +92,14 @@ function shoot(G, s, ang, pow, now, auto = false) {
   const r = simulate(G.H, b.x, b.z, ang, pow, t0, (Math.random() * 2 ** 31) | 0);
   b.strokes++; if (!auto) { G.shots[s]++; G.slow[s] = false; }
   const from = { x: b.x, z: b.z };
-  if (r.water) { b.strokes = Math.min(MAX_STROKES, b.strokes + 1); } // a splash costs a stroke and the ball goes back
+  // a splash costs a stroke and the ball goes back; `pen` counts those so every player can see them
+  let pen = 0;
+  if (r.water && b.strokes < MAX_STROKES) { b.strokes++; b.pen++; pen = 1; }
   else { b.x = r.x; b.z = r.z; }
   b.busy = now + r.ms + (r.sunk ? 800 : r.water ? 1350 : 500); // the clients show a short backswing before the ball sets off
   if (r.sunk) b.sunk = now + r.ms;
   else if (b.strokes >= MAX_STROKES) b.out = true;
-  b.shot = { n: ++G.shotN, path: r.path, fx: r.fx, ms: r.ms, at: now, sunk: r.sunk, water: r.water, x0: from.x, z0: from.z, ang, pow };
+  b.shot = { n: ++G.shotN, path: r.path, fx: r.fx, ms: r.ms, at: now, sunk: r.sunk, water: r.water, pen, x0: from.x, z0: from.z, ang, pow };
   nextTurn(G, s, b.busy + GAP_MS);
   return true;
 }
@@ -269,10 +271,10 @@ export function view(G, s) {
       const b = G.balls[i], sh = b.shot;
       return {
         name: x.name, color: x.color, av: x.av, bot: x.bot, human: x.human, id: x.id,
-        x: b.x, z: b.z, strokes: b.strokes, sunk: !!b.sunk, out: b.out, wait: Math.max(0, b.busy - now),
+        x: b.x, z: b.z, strokes: b.strokes, pen: b.pen, sunk: !!b.sunk, out: b.out, wait: Math.max(0, b.busy - now),
         card: G.cards[i], total: totalOf(G, i), wins: G.wins[i],
         // the path is only sent while the shot is still worth replaying
-        shot: sh ? { n: sh.n, ms: sh.ms, ago: now - sh.at, sunk: sh.sunk, water: sh.water, x0: sh.x0, z0: sh.z0, ang: sh.ang, pow: sh.pow, ...(now - sh.at < sh.ms + 1500 ? { path: sh.path, fx: sh.fx } : {}) } : null,
+        shot: sh ? { n: sh.n, ms: sh.ms, ago: now - sh.at, sunk: sh.sunk, water: sh.water, pen: sh.pen, x0: sh.x0, z0: sh.z0, ang: sh.ang, pow: sh.pow, ...(now - sh.at < sh.ms + 1500 ? { path: sh.path, fx: sh.fx } : {}) } : null,
       };
     }),
     holeRes: G.holeRes, res: G.res, win: G.win, ev: G.ev,

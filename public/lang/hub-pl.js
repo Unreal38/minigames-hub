@@ -171,9 +171,9 @@ export const GAMES_PL = {
     howto: `Wszyscy grają ten sam dołek i uderzają po kolei, po jednym uderzeniu, każdy swoją piłką. Odciągnij i puść, żeby uderzyć. Wygrywa najmniej uderzeń w całej rundzie.`,
     rules: `<ol>
       <li>Wszyscy grają ten sam dołek i <b>uderzają po kolei</b>, po jednym uderzeniu, aż wszystkie piłki wpadną. Każdy ma swoją piłkę, a piłki przenikają przez siebie. Zaczyna ten, kto wygrał poprzedni dołek.</li>
-      <li>Masz <b>25 sekund</b> na uderzenie. Gdy czas minie, gra wykona za ciebie niezdarne uderzenie.</li>
+      <li>Masz <b>25 sekund</b> na uderzenie. Gdy czas minie, gra wykona za ciebie niezdarne uderzenie, które liczy się jako uderzenie.</li>
       <li><b>Odciągnij</b> w dowolnym miejscu ekranu i <b>puść</b>, żeby uderzyć: im dalej odciągniesz, tym mocniej. Kropki pokazują pierwszą połowę drogi piłki, do pierwszego odbicia. Gdzie się zatrzyma, musisz ocenić samodzielnie. Na klawiaturze celuj i ustaw siłę strzałkami, potem spacja.</li>
-      <li>Uważaj na <b>wiatraki</b>, <b>słupki-odbijacze</b>, <b>rampy</b> i <b>piasek</b> (mocno spowalnia piłkę). Piłka w <b>wodzie</b> kosztuje uderzenie i wraca tam, skąd była uderzona.</li>
+      <li>Uważaj na <b>wiatraki</b>, <b>słupki-odbijacze</b>, <b>rampy</b> i <b>piasek</b> (mocno spowalnia piłkę). Piłka w <b>wodzie</b> wraca tam, skąd była uderzona, i kosztuje <b>uderzenie karne</b> oprócz samego uderzenia. Kary widać jako małe +1 przy wyniku.</li>
       <li>Masz <b>7 uderzeń</b> na dołek. Jeśli to nie wystarczy, zapisujesz 8.</li>
       <li>Uderz <b>za mocno</b>, a piłka przeskoczy nad dołkiem, więc przy dołku zwolnij.</li>
       <li><b>Losowe</b> pola powstają od nowa w każdej rundzie, więc nie ma dwóch takich samych. <b>Klasyczne</b> to dziewięć ręcznie zrobionych dołków.</li>

@@ -228,9 +228,9 @@ const GAMES = {
     howto: `Everyone plays the same hole and takes turns, one putt each, with their own ball. Drag back and let go to putt. Fewest strokes over the round wins.`,
     rules: `<ol>
       <li>Everyone plays the same hole and <b>takes turns</b>, one putt each, until every ball is in. You each have your own ball, and balls pass through each other. Whoever took the last hole tees off first.</li>
-      <li>You have <b>25 seconds</b> for a putt. If the time runs out, the game makes a clumsy putt for you.</li>
+      <li>You have <b>25 seconds</b> for a putt. If the time runs out, the game makes a clumsy putt for you, and it counts as a stroke.</li>
       <li><b>Drag back</b> anywhere on the screen and <b>let go</b> to putt: the further you pull, the harder the hit. The dots show the first half of the ball's roll, up to its first bounce. Where it stops is for you to judge. On a keyboard, use the arrow keys to aim and set the power, then space.</li>
-      <li>Watch for <b>windmills</b>, <b>bumper posts</b>, <b>ramps</b> and <b>sand</b> (it slows the ball a lot). A ball in the <b>water</b> costs a stroke and goes back where you hit it from.</li>
+      <li>Watch for <b>windmills</b>, <b>bumper posts</b>, <b>ramps</b> and <b>sand</b> (it slows the ball a lot). A ball in the <b>water</b> goes back where you hit it from and costs a <b>penalty stroke</b> on top of the putt. Penalties show as a small +1 next to the score.</li>
       <li>You get <b>7 strokes</b> a hole. Not in by then and you score 8.</li>
       <li>Hit it <b>too hard</b> and the ball skips right over the hole, so slow down near the cup.</li>
       <li><b>Random</b> courses are built fresh every round, so no two are the same. <b>Classic</b> plays the nine hand-made holes.</li>

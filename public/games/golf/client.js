@@ -112,13 +112,33 @@ export function mount(app, ctx) {
     const mine = c.s === S.me;
     if (c.k === 'putt') { if (mine) sfx.place(); else sfx.tick(); }
     else if (c.k === 'hit') { if (c.kind === 'c') { sfx.pop(); if (mine) big(L('Too fast!', 'Za szybko!'), L('It skipped right over the hole', 'Piłka przeskoczyła nad dołkiem'), 1500); } else if (mine) (c.kind === 'p' ? sfx.pop : sfx.tick)(); }
-    else if (c.k === 'water') { sfx.plop(); if (mine) { big(L('Splash!', 'Plum!'), L('One stroke, and back you go', 'Jedno uderzenie kary i wracasz na miejsce'), 1500); sfx.bad(); } }
+    else if (c.k === 'water') {
+      const sh = S.seats[c.s]?.shot; if (sh) wet.add(sh.n);
+      sfx.plop();
+      if (mine) { big(L('Splash!', 'Plum!'), sh?.pen ? L('+1 penalty stroke, and back you go', '+1 uderzenie karne i wracasz na miejsce') : L('Back you go', 'Wracasz na miejsce'), 1500); sfx.bad(); }
+      else if (sh?.pen) ctx.toast(L(`${nameOf(c.s)} went in the water: +1 penalty stroke.`, `${nameOf(c.s)}: piłka w wodzie, +1 uderzenie karne.`));
+      render();
+    }
     else if (c.k === 'sunk') {
       const p = S.seats[c.s]; if (!p) return;
-      if (mine) { sfx.win(); if (p.strokes <= S.par) confetti(); big(scoreName(p.strokes, S.par), L(`In the hole in ${p.strokes}`, `W dołku za ${p.strokes}`), 2000); }
-      else { sfx.set(); ctx.toast(L(`${I.flag}${nameOf(c.s)} is in the hole in ${p.strokes}${p.strokes === 1 ? '. A hole in one!' : ''}`, `${I.flag}${nameOf(c.s)}: w dołku za ${p.strokes}${p.strokes === 1 ? '. Hole in one!' : ''}`)); }
+      if (mine) { sfx.win(); if (p.strokes <= S.par) confetti(); big(scoreName(p.strokes, S.par), L(`In the hole in ${p.strokes}${penNote(p)}`, `W dołku za ${p.strokes}${penNote(p)}`), 2000); }
+      else { sfx.set(); ctx.toast(L(`${I.flag}${nameOf(c.s)} is in the hole in ${p.strokes}${penNote(p)}${p.strokes === 1 ? '. A hole in one!' : ''}`, `${I.flag}${nameOf(c.s)}: w dołku za ${p.strokes}${penNote(p)}${p.strokes === 1 ? '. Hole in one!' : ''}`)); }
     }
   }
+
+  // The server adds a water penalty the moment the putt is made, but the splash shows a moment later,
+  // so until then the count would look one too high. Hold the penalty back until this screen shows the splash.
+  const wet = new Set(), shotSeen = new Map();
+  function pendingPen(p) {
+    const sh = p?.shot;
+    if (!sh?.pen || wet.has(sh.n)) return 0;
+    if (!shotSeen.has(sh.n)) shotSeen.set(sh.n, performance.now() - sh.ago);
+    return performance.now() < shotSeen.get(sh.n) + sh.ms + 1600 ? sh.pen : 0;
+  }
+  const shownStrokes = p => p.strokes - pendingPen(p);
+  const shownPen = p => (p.pen || 0) - pendingPen(p);
+  const penHtml = p => { const n = shownPen(p); return n > 0 ? `<small class="pen" title="${L('Includes', 'W tym')} ${cnt(n, 'penalty stroke', 'penalty strokes', 'uderzenie karne', 'uderzenia karne', 'uderzeń karnych')} ${L('for water', 'za wodę')}">+${n}</small>` : ''; };
+  const penNote = p => { const n = shownPen(p); return n > 0 ? L(` (${n} of them for water)`, ` (w tym ${n} za wodę)`) : ''; };
 
   function buildTags() {
     const key = S.seats.map(p => p.name + p.color).join('|') + S.me;
@@ -135,7 +155,7 @@ export function mount(app, ctx) {
     const ord = S.seats.map((_, i) => i).sort((a, b) => S.seats[a].total - S.seats[b].total || S.seats[b].wins - S.seats[a].wins || a - b);
     setHtml($('mg-list'), ord.map(i => {
       const p = S.seats[i], playing = S.stage === 'play';
-      const now = playing ? (p.sunk ? `<em class="in">${I.check}${p.strokes}</em>` : p.out ? `<em class="out">${S.cap}</em>` : `<em>${p.strokes}</em>`) : '';
+      const now = playing ? (p.sunk ? `<em class="in">${I.check}${shownStrokes(p)}${penHtml(p)}</em>` : p.out ? `<em class="out" title="${L(`Picked up after ${S.max} strokes, counts as ${S.cap}`, `Podniesiona po ${S.max} uderzeniach, liczy się jako ${S.cap}`)}">${S.cap}</em>` : `<em>${shownStrokes(p)}${penHtml(p)}</em>`) : '';
       return `<li class="${i === S.me ? 'mg-me' : ''}${playing && S.turn === i ? ' turn' : ''}${playing && (p.sunk || p.out) ? ' fin' : ''}">${avatarHtml(p.color, p.av, 30)}<b>${nameHtml(p.name, p.fl)}${p.bot && p.human ? L(' (away)', ' (poza grą)') : ''}</b>${now}<span>${done ? vsPar(p.total - par) : '–'}</span></li>`;
     }).join(''));
   }
@@ -146,12 +166,12 @@ export function mount(app, ctx) {
     if (el.hidden) return;
     let html;
     if (!my) html = `<p>${L('You are watching. Take a seat for the next hole from the bar above.', 'Oglądasz. Na następny dołek możesz usiąść z paska u góry.')}</p>`;
-    else if (my.sunk) html = `<p class="good">${I.flag}${L(`In the hole in <b>${my.strokes}</b>. ${scoreName(my.strokes, S.par).replace('!', '')}. Waiting for the others.`, `W dołku za <b>${my.strokes}</b>. ${scoreName(my.strokes, S.par).replace('!', '')}. Czekamy na pozostałych.`)}</p>`;
+    else if (my.sunk) html = `<p class="good">${I.flag}${L(`In the hole in <b>${my.strokes}</b>${penNote(my)}. ${scoreName(my.strokes, S.par).replace('!', '')}. Waiting for the others.`, `W dołku za <b>${my.strokes}</b>${penNote(my)}. ${scoreName(my.strokes, S.par).replace('!', '')}. Czekamy na pozostałych.`)}</p>`;
     else if (my.out) html = `<p>${L(`Picked up after ${S.max} strokes. That counts as ${S.cap}.`, `Piłka podniesiona po ${S.max} uderzeniach. Liczy się to jako ${S.cap}.`)}</p>`;
     else if (my.bot) html = `<p>${L('A bot is putting for you. Welcome back!', 'Bot uderza za ciebie. Witaj z powrotem!')}</p>`;
     else if (aiming) html = `<div class="power" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(power * 100)}"><i style="width:${Math.round(power * 100)}%"></i></div><p>${L(`${keys ? 'Left and right to aim, up and down for power, space to putt' : power < .04 ? 'Pull further back, or let go to cancel' : 'Let go to putt'}`, `${keys ? 'Lewo i prawo celują, góra i dół ustawiają siłę, spacja uderza' : power < .04 ? 'Pociągnij dalej albo puść, żeby anulować' : 'Puść, żeby uderzyć'}`)} · ${Math.round(power * 100)}%</p>`;
-    else if (S.turn !== S.me) html = S.turn >= 0 ? L(`<p><b>${nameOf(S.turn)}</b> ${turnOpen() ? 'is putting' : 'is up next'}. You have taken <b>${my.strokes}</b> of ${S.max} strokes.</p>`, `<p>${turnOpen() ? 'Uderza' : 'Następny uderza'} <b>${nameOf(S.turn)}</b>. Twoje uderzenia: <b>${my.strokes}</b> z ${S.max}.</p>`) : `<p>${L('Rolling…', 'Piłka się toczy…')}</p>`;
-    else if (rolling || !canAim()) html = `<p>${L(`${turnOpen() ? 'Rolling…' : 'You are up next.'} <span class="strokes">Stroke ${my.strokes} of ${S.max}</span>`, `${turnOpen() ? 'Piłka się toczy…' : 'Zaraz twoja kolej.'} <span class="strokes">Uderzenie ${my.strokes} z ${S.max}</span>`)}</p>`;
+    else if (S.turn !== S.me) html = S.turn >= 0 ? L(`<p><b>${nameOf(S.turn)}</b> ${turnOpen() ? 'is putting' : 'is up next'}. You have taken <b>${shownStrokes(my)}</b> of ${S.max} strokes${penNote(my)}.</p>`, `<p>${turnOpen() ? 'Uderza' : 'Następny uderza'} <b>${nameOf(S.turn)}</b>. Twoje uderzenia: <b>${shownStrokes(my)}</b> z ${S.max}${penNote(my)}.</p>`) : `<p>${L('Rolling…', 'Piłka się toczy…')}</p>`;
+    else if (rolling || !canAim()) html = `<p>${L(`${turnOpen() ? 'Rolling…' : 'You are up next.'} <span class="strokes">Stroke ${shownStrokes(my)} of ${S.max}</span>`, `${turnOpen() ? 'Piłka się toczy…' : 'Zaraz twoja kolej.'} <span class="strokes">Uderzenie ${shownStrokes(my)} z ${S.max}</span>`)}</p>`;
     else html = `<p>${L(`<b>Your putt.</b> Drag back anywhere and let go. <span class="strokes">Stroke ${my.strokes + 1} of ${S.max}</span>`, `<b>Twoje uderzenie.</b> Przeciągnij do tyłu w dowolnym miejscu i puść. <span class="strokes">Uderzenie ${my.strokes + 1} z ${S.max}</span>`)}</p>`;
     setHtml(el, html);
   }
@@ -196,7 +216,10 @@ export function mount(app, ctx) {
     if (e.t === 'hole') { hideResults(); sfx.draw(); big(L(`Hole ${S.hole}`, `Dołek ${S.hole}`), `${esc(holeName(S.name))} · Par ${S.par}`, 2000); }
     else if (e.t === 'go') { big(L('Tee off!', 'Zaczynamy!'), `${esc(holeName(S.name))} · Par ${S.par}`, 1300); sfx.turn(); }
     else if (e.t === 'holeEnd') { const R = S.holeRes; if (R?.win === S.me) sfx.set(); else sfx.pop(); }
-    else if (e.t === 'late') { if (e.s === S.me) ctx.toast(L('Out of time, so the game putted for you.', 'Koniec czasu, więc gra uderzyła za ciebie.')); }
+    else if (e.t === 'late') {
+      if (e.s === S.me) ctx.toast(L('Out of time, so the game putted for you. It counts as a stroke.', 'Koniec czasu, więc gra uderzyła za ciebie. To liczy się jako uderzenie.'));
+      else ctx.toast(L(`${nameOf(e.s)} ran out of time, so the game putted for them.`, `${nameOf(e.s)}: koniec czasu, gra uderzyła za tę osobę.`));
+    }
     else if (e.t === 'sit') ctx.toast(L(`${nameOf(e.s)} joins the round.`, `${nameOf(e.s)} dołącza do rundy.`));
     else if (e.t === 'end') {
       if (S.win === S.me) { sfx.win(); confetti(); } else sfx.lose();
