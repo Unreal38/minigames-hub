@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { diceKit } from '../../dice3d.js';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
-import { toonify, toonMat, shell, skyDome, clouds, island, birds, petals, createFx, shaker, STAR, DOT, nightScene } from '../../scenery3d.js';
+import { toonify, toonMat, shell, skyDome, clouds, island, birds, petals, createFx, shaker, STAR, DOT, nightScene, roundDeck } from '../../scenery3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { hudFitOk } from '../../camfit.js';
 import { matches } from './rules.js';
@@ -47,9 +47,7 @@ export function createScene(canvas, { onFrame } = {}) {
   const room = new THREE.Group(); scene.add(room);
   const put = (geo, mat, x = 0, y = 0, z = 0, parent = room) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); parent.add(m); return m; };
   { // a round plank deck with a rope-ish rim
-    const deck = put(new THREE.CylinderGeometry(7.6, 7.6, .16, 28), M('#d9a066'), 0, -2.42, 0); deck.receiveShadow = true;
-    for (let i = -6; i <= 6; i++) { const w = Math.sqrt(Math.max(0, 7.5 * 7.5 - (i * 1.15) ** 2)) * 2; put(new THREE.BoxGeometry(w, .02, .05), M('#b97f4c'), 0, -2.33, i * 1.15); }
-    const rim = new THREE.TorusGeometry(7.6, .14, 6, 28); rim.rotateX(Math.PI / 2); put(rim, M('#a86a42'), 0, -2.36, 0);
+    room.add(roundDeck(7.6, { wood: '#d9a066', seam: '#b97f4c', rim: '#a86a42', pitch: 1.15 }));
     // table: a plank top with a teal cloth, on a barrel
     const top = put(new THREE.CylinderGeometry(R + .45, R + .3, .3, 28), M('#b9794a'), 0, -.15, 0); top.castShadow = top.receiveShadow = true;
     const cloth = put(new THREE.CylinderGeometry(R, R, .04, 28), M('#3f9f96'), 0, .0, 0); cloth.receiveShadow = true;

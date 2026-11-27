@@ -4,7 +4,7 @@
 // Purely visual: it draws what the server sends. The answer sheet itself is drawn by the page (client.js), not here.
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
-import { toonify, skyDome, clouds, island, birds, petals, createFx, shaker, STAR, nightScene } from '../../scenery3d.js';
+import { toonify, skyDome, clouds, island, birds, petals, createFx, shaker, STAR, nightScene, roundDeck } from '../../scenery3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { hudFitOk } from '../../camfit.js';
 import { LETTERS } from './rules.js';
@@ -50,9 +50,7 @@ export function createScene(canvas, { onFrame } = {}) {
   const room = new THREE.Group(); scene.add(room);
   const put = (geo, mat, x = 0, y = 0, z = 0, parent = room) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); parent.add(m); return m; };
   {
-    const deck = put(new THREE.CylinderGeometry(7.6, 7.6, .16, 28), M('#d9a066'), 0, -2.42, 0); deck.receiveShadow = true;
-    for (let i = -6; i <= 6; i++) { const w = Math.sqrt(Math.max(0, 7.5 * 7.5 - (i * 1.15) ** 2)) * 2; put(new THREE.BoxGeometry(w, .02, .05), M('#b97f4c'), 0, -2.33, i * 1.15); }
-    const rimG = new THREE.TorusGeometry(7.6, .14, 6, 28); rimG.rotateX(Math.PI / 2); put(rimG, M('#a86a42'), 0, -2.36, 0);
+    room.add(roundDeck(7.6, { wood: '#d9a066', seam: '#b97f4c', rim: '#a86a42', pitch: 1.15 }));
     // the table: a plank top on a barrel with a pale blue cloth
     const top = put(new THREE.CylinderGeometry(R + .45, R + .3, .3, 28), M('#b9794a'), 0, -.15, 0); top.castShadow = top.receiveShadow = true;
     const edge = new THREE.TorusGeometry(R + .4, .08, 6, 28); edge.rotateX(Math.PI / 2); put(edge, M('#ffc94d'), 0, 0, 0);
