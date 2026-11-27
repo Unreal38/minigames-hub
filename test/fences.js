@@ -55,5 +55,16 @@ if (ring.at(-1).r !== 1 || ring.at(-1).x !== 8) fail('a lone turned fence should
   thinArches(it); if (it[1].y !== .5 || it[1].x !== 1) fail('old arch should line up with its fence ' + JSON.stringify(it[1]));
   if (it[2].x !== 5 || it[2].y !== 5) fail('a lone old arch should stay on its first half ' + JSON.stringify(it[2])); }
 
+// diagonal fences (r .5 ...): a whole 1 x 1 square, corner to corner
+{ const it = [F(1, 1, 1, .5), F(2, 2, 2, .5)], a = fenceLink(it, 1, 1, .5, 1), b = fenceLink(it, 2, 2, .5, 2);
+  if (!(a >> 10 & 1) || st(a, 0) !== 1 || !(a >> 4 & 1) || st(b, 1) !== 1 || b >> 5 & 1) fail(`diagonals in line ${a} ${b}`);
+  const s = fenceShape(a); if (Math.abs(s.hi - Math.SQRT1_2) > 1e-9 || s.posts.length !== 2) fail('diagonal shape ' + JSON.stringify(s)); }
+{ const it = [F(1, 0, 0, .5), F(2, 1, 0, 1.5)], a = fenceLink(it, 0, 0, .5, 1), b = fenceLink(it, 1, 0, 1.5, 2); // a V turning at (1, 1)
+  if (st(a, 0) !== 1 || st(b, 0) !== 1 || (a >> 4 & 1) + (b >> 4 & 1) !== 1) fail(`diagonal corner ${a} ${b}`); }
+{ const it = [F(1, 1, 1, .5), F(2, 0, 1, 0)], d = fenceLink(it, 1, 1, .5, 1), h = fenceLink(it, 0, 1, 0, 2); // a straight one meets its side
+  if (st(h, 0) !== 2 || h >> 4 & 1) fail('straight should reach into the diagonal ' + h);
+  if (!(d >> 7 & 1) || !(d >> 9 & 1)) fail('diagonal should stop at the straight one (clean corner) ' + d);
+  const s = fenceShape(d); if (Math.abs(s.lo + Math.SQRT1_2 / 2) > 1e-9) fail('trimmed diagonal ' + JSON.stringify(s)); }
+
 if (bad) { console.error(`fences: ${bad} problem(s)`); process.exit(1); }
 console.log('fences ok');
