@@ -32,6 +32,10 @@ const I = {
   ok: svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>'),
   no: svg('<path d="M6 6l12 12M18 6L6 18"/>'),
   bin: svg('<path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v5M14 11v5"/>'),
+  buy: svg('<circle cx="12" cy="12" r="7.5"/><path d="M12 8.5v7M9.5 12h5"/>'), // a coin with a plus: pay and place
+  gift: svg('<path d="M4.5 10.5h15V20h-15zM3.5 7.5h17v3h-17zM12 7.5V20"/><path d="M12 7.5C10 4 7 4.5 7.5 6.5S12 7.5 12 7.5zM12 7.5c2-3.5 5-3 4.5-1S12 7.5 12 7.5z"/>'),
+  move: svg('<path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/>'),
+  find: svg('<circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/>'),
 };
 // little pictures for the one-line summary of parties out and eggs in the Nest
 const tripIcon = '<svg class="pfsi" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M5 21V4" stroke="#5a3a2e" stroke-width="2.4" stroke-linecap="round"/><path d="M6 4h12l-3 4 3 4H6z" fill="#ff8f6b" stroke="#5a3a2e" stroke-width="2" stroke-linejoin="round"/></svg>';
@@ -107,7 +111,8 @@ export function mount(app, ctx) {
       <div class="bt" id="pf-bt" hidden></div>
       <div class="bfl" id="pf-fl"></div>
       <div class="pfgfloat" id="pf-gfloat" hidden></div>
-      <div class="dock"><div class="ghostbar" id="pf-ghost" hidden></div><div class="build" id="pf-build" hidden></div></div>
+      <div class="dock"></div>
+      <div class="build" id="pf-build" hidden></div>
     </div>
     <div class="gate" id="pf-panel" hidden></div>
     <div class="gate" id="pf-gate" hidden></div>
@@ -403,7 +408,33 @@ export function mount(app, ctx) {
     else if (go.a === 'map') { where = 'map'; V = null; world = null; sync(); ctx.send({ t: 'world' }); return; }
     sync();
   }
-  function openBuy(type) { setEdit(true); tab = ITEMS[type]?.kind === 'b' ? 'b' : ITEMS[type]?.craft || ITEMS[type]?.jn ? 'f' : 'd'; paintBuild(); panel = { kind: 'buy', type }; paintPanel(); }
+  // Straight to the build list with that piece in hand (or a note saying why it cannot be placed yet).
+  function openBuy(type) { setEdit(true); tab = F.stash[type] > 0 ? 'x' : catOf(type); query = ''; paintBuild(); takeItem(type); }
+  // Edit farm groups things by what they are. The stash (gifts and prizes waiting to be placed) is a group of its own.
+  const PLANTS = { tree: 1, pine: 1, bush: 1, flowers: 1, cherry: 1, shrooms: 1, clover: 1, topiary: 1, hives: 1, haybale: 1 };
+  const LINEY = { fence: 1, arch: 1, horseshoe: 1, path: 1, gravel: 1, plank: 1, dirt: 1, moss: 1 };
+  const catOf = type => { const it = ITEMS[type]; return it.kind === 'b' ? 'b' : LINEY[type] ? 'p' : PLANTS[type] ? 'r' : it.stamp ? 's' : it.craft || it.pals || it.wheel || it.jn ? 'f' : 'd'; };
+  const CATS = () => [['b', L('Buildings', 'Budynki')], ['p', L('Fences & paths', 'Płotki i ścieżki')], ['r', L('Plants', 'Rośliny')], ['d', L('Decorations', 'Ozdoby')], ['f', L('Fancy', 'Wyszukane')], ['s', L('Stamps', 'Znaczki')], ['x', L('Stash', 'Schowek')]];
+  let query = '', listOpen = false, bfold = false; try { bfold = localStorage.getItem('pf_bfold') === '1'; } catch {}
+  // Why a piece cannot be placed right now ('' when it can).
+  function whyNot(type) {
+    const it = ITEMS[type], have = countOf(F, type), most = maxOf(F, type), gift = F.stash[type] || 0;
+    return gift ? '' : it.jn && !have ? L(`This one cannot be bought. It is the reward for chapter ${it.jn} of the Farm Journal.`, `Tego nie da się kupić. To nagroda za rozdział ${it.jn} Dziennika farmy.`) : it.wheel && !have ? L('This one cannot be bought. It is a prize of the Lucky Wheel on the main page, one free spin a day.', 'Tego nie da się kupić. To nagroda z Koła szczęścia na stronie głównej: jeden darmowy obrót dziennie.') : it.pals && F.palpts < it.pals ? L(`Unlocks at ${it.pals} friendship points (you have ${F.palpts}). You earn them by helping out and leaving gifts.`, `Odblokuje się przy ${it.pals} punktach przyjaźni (masz ${F.palpts}). Zdobywasz je, pomagając innym i zostawiając prezenty.`)
+      : it.craft && Math.max(0, ...F.items.filter(i => i.type === 'workshop').map(lvOf)) < it.craft ? (it.craft > 1 ? L(`Needs a level ${it.craft} Workshop. Tap your Workshop to improve it.`, `Wymaga Warsztatu na poziomie ${it.craft}. Dotknij swojego Warsztatu, żeby go ulepszyć.`) : L('Needs a Workshop on your farm. It is under Buildings.', 'Wymaga Warsztatu na farmie. Znajdziesz go w Budynkach.'))
+      : it.house && F.house < it.house ? L(`Needs a level ${it.house} farmhouse. Tap your farmhouse to improve it.`, `Wymaga domu na poziomie ${it.house}. Dotknij domu, żeby go ulepszyć.`)
+      : most && have >= most ? (type === 'hut' ? L(`You already have ${have}, the most a farm can hold. For more pets, build a Pet Lodge${F.house < 4 ? ' (it needs a level 4 farmhouse)' : ''}: it stores up to 300.`, `Masz już ${have}, więcej farma nie pomieści. Żeby mieć więcej zwierzaków, zbuduj Schronisko${F.house < 4 ? ' (wymaga domu na poziomie 4)' : ''}: pomieści do 300.`) : L(`You already have ${most === 1 ? 'one, and one is the most a farm can hold' : `${have}, the most a farm can hold`}.`, `Masz już ${have}, a więcej farma nie pomieści.`))
+      : !canAfford(F.inv, it.cost) ? (it.stamp ? L(`You have ${F.inv.stamps || 0} stamps. Deliver island orders at the Order Board to earn more.`, `Masz znaczki: ${F.inv.stamps || 0}. Dostarczaj zamówienia z wysp na Tablicy zamówień, żeby zdobyć więcej.`) : L('You do not have enough materials yet.', 'Nie masz jeszcze dość materiałów.')) : '';
+  }
+  // A card was tapped: the piece goes in hand as a free preview, even one that cannot be bought yet (to see it on the
+  // farm and read about it). Nothing is paid until the green button, which stays grey while whyNot has a reason.
+  function takeItem(type) { sfx.click(); listOpen = false; scene?.ghostCancel(); scene?.ghostNew(type); }
+  // What the details box says about a piece: size, walking, how many, improvements.
+  const pn = n => String(n).replace('.', ','); // Polish decimal comma
+  function itemFacts(type) {
+    const it = ITEMS[type], have = countOf(F, type), most = maxOf(F, type), up = UPGRADES[type];
+    const size = it.w === it.h ? (it.w < 1 ? L('Half a tile', 'Pół kratki') : it.w === 1 ? L('One tile', 'Jedna kratka') : L(`${it.w} by ${it.h} tiles`, `${pn(it.w)} na ${pn(it.h)} kratki`)) : L(`${it.w} by ${it.h} tiles`, `${pn(it.w)} na ${pn(it.h)} kratki`);
+    return `${size}${it.walk ? L(' · pets can walk over it', ' · zwierzaki mogą po tym chodzić') : ''}${most ? L(` · you have ${have} of ${most}`, ` · masz ${have} z ${most}`) : have ? L(` · you have ${have}`, ` · masz ${have}`) : ''}${up ? L(` · can be improved to level ${lvMax(type)}`, ` · można ulepszyć do poziomu ${lvMax(type)}`) : ''}`;
+  }
 
   // ---------- expeditions ----------
   const helperOf = type => F.pets.find(p => p.id === F.work?.[type]);
@@ -436,25 +467,8 @@ export function mount(app, ctx) {
   function paintPanelNow() {
     // where the send panel was scrolled, so a tap on a place or a pet does not jump it back
     const box = $('pf-panel'), was = box.querySelector('.tripp .dests') && panel?.kind === 'send' ? { t: box.querySelector('.tripp').scrollTop, d: box.querySelector('.dests').scrollLeft, p: box.querySelector('.party')?.scrollLeft || 0 } : null;
-    if (!panel || mode !== 'farm' || (edit && panel.kind !== 'buy')) { box.hidden = true; box.innerHTML = ''; return; }
+    if (!panel || mode !== 'farm' || edit) { box.hidden = true; box.innerHTML = ''; return; }
     box.hidden = false;
-    if (panel.kind === 'buy') { // a closer look at something from the build menu before paying for it
-      const type = panel.type, it = ITEMS[type], have = countOf(F, type), up = UPGRADES[type], most = maxOf(F, type);
-      const gift = F.stash[type] || 0;
-      const why = gift ? '' : it.jn && !have ? L(`This one cannot be bought. It is the reward for chapter ${it.jn} of the Farm Journal.`, `Tego nie da się kupić. To nagroda za rozdział ${it.jn} Dziennika farmy.`) : it.wheel && !have ? L('This one cannot be bought. It is a prize of the Lucky Wheel on the main page, one free spin a day.', 'Tego nie da się kupić. To nagroda z Koła szczęścia na stronie głównej: jeden darmowy obrót dziennie.') : it.pals && F.palpts < it.pals ? L(`Unlocks at ${it.pals} friendship points (you have ${F.palpts}). You earn them by helping out and leaving gifts.`, `Odblokuje się przy ${it.pals} punktach przyjaźni (masz ${F.palpts}). Zdobywasz je, pomagając innym i zostawiając prezenty.`)
-        : it.craft && Math.max(0, ...F.items.filter(i => i.type === 'workshop').map(lvOf)) < it.craft ? (it.craft > 1 ? L(`Needs a level ${it.craft} Workshop. Tap your Workshop to improve it.`, `Wymaga Warsztatu na poziomie ${it.craft}. Dotknij swojego Warsztatu, żeby go ulepszyć.`) : L('Needs a Workshop on your farm. It is under Buildings.', 'Wymaga Warsztatu na farmie. Znajdziesz go w Budynkach.'))
-        : it.house && F.house < it.house ? L(`Needs a level ${it.house} farmhouse. Tap your farmhouse to improve it.`, `Wymaga domu na poziomie ${it.house}. Dotknij domu, żeby go ulepszyć.`)
-        : most && have >= most ? (type === 'hut' ? L(`You already have ${have}, the most a farm can hold. For more pets, build a Pet Lodge${F.house < 4 ? ' (it needs a level 4 farmhouse)' : ''}: it stores up to 300.`, `Masz już ${have}, więcej farma nie pomieści. Żeby mieć więcej zwierzaków, zbuduj Schronisko${F.house < 4 ? ' (wymaga domu na poziomie 4)' : ''}: pomieści do 300.`) : L(`You already have ${most === 1 ? 'one, and one is the most a farm can hold' : `${have}, the most a farm can hold`}.`, `Masz już ${have}, a więcej farma nie pomieści.`))
-        : !canAfford(F.inv, it.cost) ? (it.stamp ? L(`You have ${F.inv.stamps || 0} stamps. Deliver island orders at the Order Board to earn more.`, `Masz znaczki: ${F.inv.stamps || 0}. Dostarczaj zamówienia z wysp na Tablicy zamówień, żeby zdobyć więcej.`) : L('You do not have enough materials yet.', 'Nie masz jeszcze dość materiałów.')) : '';
-      const size = it.w === it.h ? (it.w < 1 ? L('Half a tile', 'Pół kratki') : it.w === 1 ? L('One tile', 'Jedna kratka') : L(`${it.w} by ${it.h} tiles`, `${it.w} na ${it.h} kratki`)) : L(`${it.w} by ${it.h} tiles`, `${it.w} na ${it.h} kratki`);
-      box.innerHTML = `<div class="panel tripp buy"><div class="buytop">${thumb(type, it.name)}<div><h2>${it.name}</h2><p>${it.desc}</p></div></div>
-        <p class="hint">${size}${it.walk ? L(' · pets can walk over it', ' · zwierzaki mogą po tym chodzić') : ''}${most ? L(` · you have ${have} of ${most}`, ` · masz ${have} z ${most}`) : have ? L(` · you have ${have}`, ` · masz ${have}`) : ''}${up ? L(` · can be improved to level ${lvMax(type)}`, ` · można ulepszyć do poziomu ${lvMax(type)}`) : ''}</p>
-        <p><b>${L(`Price`, `Cena`)}</b></p><div class="cost">${gift ? `<span class="mat">${L(`Free: a gift from a friend (${gift} to place)`, `Za darmo: prezent od znajomego (do postawienia: ${gift})`)}</span>` : costHtml(it.cost, F.inv)}</div>
-        <p class="hint">${why || L('After buying, drag it to where you want it. Selling it later gives everything back.', 'Po zakupie przeciągnij to tam, gdzie chcesz. Przy sprzedaży wraca cały koszt.')}</p>
-        <div class="row end"><button type="button" class="btn w" data-a="shut">${L(`Not now`, `Nie teraz`)}</button>
-          <button type="button" class="btn big m" data-a="buy" data-type="${type}" ${why ? 'disabled' : ''}>${gift ? L('Place it', 'Postaw') : L('Buy and place', 'Kup i postaw')}</button></div></div>`;
-      return;
-    }
     if (panel.kind === 'team') { // who fights (or defends), in order: the first one leads
       const away = outAll(), what = panel.mode === 'defend' ? L('Defence team', 'Drużyna obrony') : panel.mode === 'queue' ? L('Live match', 'Mecz na żywo') : panel.mode === 'live' ? L(`Live battle with ${esc(panel.foeName)}`, `Bitwa na żywo: ${esc(panel.foeName)}`) : panel.mode === 'arena' && panel.foe === 'auto' ? L('Quick match', 'Szybki mecz') : panel.mode === 'arena' ? L(`Match against ${esc(panel.foeName)}`, `Mecz: ${esc(panel.foeName)}`) : L('Practice battle', 'Bitwa treningowa');
       const pets = favFirst(F.pets.filter(p => !p.lodge)).map(p => { const i = panel.pets.indexOf(p.id), out = busyFor(p, panel.mode);
@@ -1094,47 +1108,61 @@ export function mount(app, ctx) {
       <button type="button" class="btn big" data-a="start" ${pick ? '' : 'disabled'}>${L(`${pick ? `Start with ${SPECIES[pick].name}` : 'Tap a pet to choose'}`, `${pick ? `Zacznij z: ${SPECIES[pick].name}` : 'Dotknij zwierzaka, żeby wybrać'}`)}</button></div>`;
     el.classList.toggle('low', mode === 'starter');
   }
+  // Edit farm's list: a slim tray on phones (it folds to its group chips while a piece is in hand), a side panel with
+  // search on wider screens. The shell stays put between paints, so the search box keeps its focus and text.
   function paintBuild() {
     const el = $('pf-build');
     el.hidden = !(mode === 'farm' && edit);
+    root.querySelector('.pf')?.classList.toggle('editing', !el.hidden); root.classList.toggle('editing', !el.hidden);
     if (el.hidden) return;
-    const g = scene?.ghost();
-    const cards = Object.entries(ITEMS).filter(([, it]) => !it.fixed && (tab === 's' ? it.stamp : tab === 'f' ? it.craft || it.pals || it.wheel || it.jn : it.kind === tab && !it.craft && !it.pals && !it.wheel && !it.jn && !it.stamp)).map(([type, it]) => {
+    if (!el.querySelector('.bhead')) el.innerHTML = `<div class="bhead"><div class="pills cats" role="tablist"></div>
+        <button type="button" class="btn m bdone" data-a="done">${L(`Done`, `Gotowe`)}</button></div>
+      <div class="bbody"><div class="btop"><b class="bname"></b><button type="button" class="btn sm w bfoldb" data-a="bfold"></button></div>
+        <label class="bfind">${I.find}<input class="field" id="pf-bq" type="search" autocomplete="off" placeholder="${L('Find…', 'Szukaj…')}" aria-label="${L('Find a building or decoration', 'Szukaj budynku lub ozdoby')}"></label>
+        <div class="bhand"></div><div class="items"></div>
+        <p class="hint bhint">${L(`Tap something on the farm to move it.`, `Dotknij czegoś na farmie, żeby to przesunąć.`)}</p></div>`;
+    const g = scene?.ghost(), held = g && !g.id, stashN = Object.values(F.stash || {}).reduce((a, n) => a + n, 0);
+    if (tab === 'x' && !stashN) tab = 'b';
+    const q = query.trim().toLowerCase();
+    const cards = Object.entries(ITEMS).filter(([type, it]) => !it.fixed && (q ? (it.name.toLowerCase().includes(q) || type.includes(q)) : tab === 'x' ? F.stash[type] > 0 : catOf(type) === tab)).map(([type, it]) => {
       const have = countOf(F, type), most = maxOf(F, type), full = most && have >= most, gift = F.stash[type] || 0, small = it.house && F.house < it.house, poor = !gift && !canAfford(F.inv, it.cost), wsLv = Math.max(0, ...F.items.filter(i => i.type === 'workshop').map(lvOf)), locked = !gift && it.craft && wsLv < it.craft, shy = !gift && it.pals && F.palpts < it.pals, luck = !gift && (it.wheel || it.jn) && !have;
-      return `<button type="button" class="item${full || poor || locked || shy || luck || small ? ' off' : ''}" data-a="item" data-type="${type}" aria-pressed="${g?.type === type && !g.id}">
-        ${thumb(type)}<b>${it.name}</b><span class="cost">${gift ? `<span class="mat">${L(`Gift: ${gift} to place`, `Prezent: ${gift} do postawienia`)}</span>` : luck ? `<span class="mat">${it.jn ? L(`Journal chapter ${it.jn}`, `Dziennik: rozdział ${it.jn}`) : L('Lucky Wheel prize', 'Nagroda z Koła szczęścia')}</span>` : shy ? `<span class="mat">${L(`Friendship ${F.palpts} of ${it.pals}`, `Przyjaźń ${F.palpts} z ${it.pals}`)}</span>` : locked ? `<span class="mat">${L(`${it.craft > 1 ? `Workshop level ${it.craft}` : 'Needs a Workshop'}`, `${it.craft > 1 ? `Warsztat poziom ${it.craft}` : 'Wymaga Warsztatu'}`)}</span>` : small ? `<span class="mat">${L(`Farmhouse level ${it.house}`, `Dom poziom ${it.house}`)}</span>` : full ? `<span class="mat">${L(`Have ${have} of ${most}`, `Masz ${have} z ${most}`)}</span>` : costHtml(it.cost, F.inv)}</span></button>`;
+      return `<button type="button" class="item${full || poor || locked || shy || luck || small ? ' off' : ''}" data-a="item" data-type="${type}" aria-pressed="${g?.type === type && !g.id}" title="${esc(it.desc)}">
+        ${thumb(type)}<b>${it.name}</b><span class="cost">${gift ? `<span class="mat">${I.gift}${L(`${gift} in stash`, `W schowku: ${gift}`)}</span>` : luck ? `<span class="mat">${it.jn ? L(`Journal chapter ${it.jn}`, `Dziennik: rozdział ${it.jn}`) : L('Lucky Wheel prize', 'Nagroda z Koła szczęścia')}</span>` : shy ? `<span class="mat">${L(`Friendship ${F.palpts} of ${it.pals}`, `Przyjaźń ${F.palpts} z ${it.pals}`)}</span>` : locked ? `<span class="mat">${L(`${it.craft > 1 ? `Workshop level ${it.craft}` : 'Needs a Workshop'}`, `${it.craft > 1 ? `Warsztat poziom ${it.craft}` : 'Wymaga Warsztatu'}`)}</span>` : small ? `<span class="mat">${L(`Farmhouse level ${it.house}`, `Dom poziom ${it.house}`)}</span>` : full ? `<span class="mat">${L(`Have ${have} of ${most}`, `Masz ${have} z ${most}`)}</span>` : costHtml(it.cost, F.inv)}</span></button>`;
     }).join('');
     const landLow = F.next?.house > F.house; // that size needs a bigger farmhouse first
-    const land = tab === 'b' && F.next ? `<button type="button" class="item land${canAfford(F.inv, F.next.cost) && !landLow ? '' : ' off'}" data-a="expand"${landLow ? ' data-low="1"' : ''}>
+    const land = tab === 'b' && !q && F.next ? `<button type="button" class="item land${canAfford(F.inv, F.next.cost) && !landLow ? '' : ' off'}" data-a="expand"${landLow ? ' data-low="1"' : ''}>
         <span class="nothumb grow">${F.next.size}</span><b>${L(`More land`, `Więcej ziemi`)}</b><span class="cost">${landLow ? `<span class="mat">${L(`Farmhouse level ${F.next.house}`, `Dom poziom ${F.next.house}`)}</span>` : costHtml(F.next.cost, F.inv)}</span></button>` : '';
-    const keep = el.querySelector('.items')?.scrollLeft || 0;
-    el.innerHTML = `<div class="bhead"><div class="pills">
-        <button type="button" data-a="tab" data-tab="b" aria-pressed="${tab === 'b'}">${L(`Buildings`, `Budynki`)}</button>
-        <button type="button" data-a="tab" data-tab="d" aria-pressed="${tab === 'd'}">${L(`Decorations`, `Ozdoby`)}</button>
-        <button type="button" data-a="tab" data-tab="f" aria-pressed="${tab === 'f'}">${L(`Fancy`, `Wyszukane`)}</button>
-        <button type="button" data-a="tab" data-tab="s" aria-pressed="${tab === 's'}">${matIcon('stamps', 16)}${L(`Stamps`, `Znaczki`)}</button></div>
-      <span class="hint">${L(`Tap something on the farm to move it.`, `Dotknij czegoś na farmie, żeby to przesunąć.`)}</span>
-      <button type="button" class="btn m" data-a="done">${L(`Done`, `Gotowe`)}</button></div>
-      <div class="items">${cards}${land}</div>`;
-    el.querySelector('.items').scrollLeft = keep;
+    const cats = CATS().filter(([k]) => k !== 'x' || stashN).map(([k, n]) => `<button type="button" data-a="tab" data-tab="${k}" role="tab" aria-pressed="${!q && tab === k}">${n}${k === 'x' ? `<span class="bcount">${stashN}</span>` : ''}</button>`).join('');
+    const pills = el.querySelector('.cats'); if (pills.innerHTML !== cats) { const sl = pills.scrollLeft; pills.innerHTML = cats; pills.scrollLeft = sl; }
+    el.querySelector('.bname').textContent = q ? L('Found', 'Znalezione') : CATS().find(([k]) => k === tab)?.[1] || '';
+    el.querySelector('.bfoldb').textContent = bfold ? L('Show list', 'Pokaż listę') : L('Hide', 'Schowaj');
+    const it = held && ITEMS[g.type], gift = held && F.stash[g.type] > 0;
+    const gi = g && ITEMS[g.type], why = held ? whyNot(g.type) : '';
+    el.querySelector('.bhand').innerHTML = g ? `<div class="bhrow"><span class="bhn">${thumb(g.type)}<b>${gi.name}</b></span>${held ? `<span class="cost">${gift ? `<span class="mat">${L('Free from the stash', 'Za darmo ze schowka')}</span>` : costHtml(gi.cost, F.inv)}</span>` : ''}
+      <button type="button" class="btn sm w bhlist" data-a="blist">${listOpen ? L('Hide list', 'Schowaj listę') : L('Show list', 'Pokaż listę')}</button></div>
+      <p class="bdesc">${gi.desc} <span class="hint">${itemFacts(g.type)}</span></p>${why ? `<p class="bwhy">${why}</p>` : ''}` : '';
+    const box = el.querySelector('.items'), keep = box.scrollLeft, keepY = box.scrollTop;
+    box.innerHTML = cards + land || `<p class="hint">${L('Nothing by that name.', 'Nic takiego nie ma.')}</p>`;
+    box.scrollLeft = keep; box.scrollTop = keepY;
+    el.classList.toggle('held', !!g && !listOpen); el.classList.toggle('hasg', !!g); el.classList.toggle('fold', bfold);
   }
   function paintGhost(g) {
-    const el = $('pf-ghost');
-    el.hidden = !g;
     if (!g) { $('pf-gfloat').hidden = true; floatAt = ''; paintBuild(); return; }
-    const it = ITEMS[g.type];
-    el.innerHTML = `<b>${it.name}</b><span class="hint">${L(`${g.ok ? 'Drag it, or tap a tile.' : 'It does not fit there.'}`, `${g.ok ? 'Przeciągnij albo dotknij kratki.' : 'Tu się nie zmieści.'}`)}</span>
-      <button type="button" class="btn sm w" data-a="rot" aria-label="${L('Turn', 'Obróć')}">${I.turn}${L('Turn', 'Obróć')}</button>
-      ${g.id && !it.fixed ? `<button type="button" class="btn sm p" data-a="away">${L(`Sell (${costText(it.cost)} back)`, `Sprzedaj (zwrot: ${costText(it.cost)})`)}</button>` : ''}
-      <button type="button" class="btn sm ghost" data-a="cancel">${L(`Cancel`, `Anuluj`)}</button>
-      <button type="button" class="btn sm m" data-a="ok" ${g.ok ? '' : 'disabled'}>${L(`${g.id ? 'Move here' : 'Place'}`, `${g.id ? 'Przenieś tutaj' : 'Postaw'}`)}</button>`;
-    el.classList.toggle('bad', !g.ok);
-    // the same buttons floating over the piece itself, so it can be placed, turned or sold without going to the bar below
-    const fl = $('pf-gfloat'), sell = g.id && !it.fixed;
-    fl.innerHTML = `<button type="button" class="round" data-a="rot" title="${L('Turn (R)', 'Obróć (R)')}" aria-label="${L('Turn', 'Obróć')}">${I.turn}</button>
-      ${sell ? `<button type="button" class="round sell" data-a="away" title="${L(`Sell (${costText(it.cost)} back)`, `Sprzedaj (zwrot: ${costText(it.cost)})`)}" aria-label="${L('Sell', 'Sprzedaj')}">${I.bin}</button>` : ''}
-      <button type="button" class="round" data-a="cancel" title="${L('Cancel (Esc)', 'Anuluj (Esc)')}" aria-label="${L('Cancel', 'Anuluj')}">${I.no}</button>
-      <button type="button" class="round okb" data-a="ok" ${g.ok ? '' : 'disabled'} title="${L(g.id ? 'Move here (Enter)' : 'Place (Enter)', g.id ? 'Przenieś tutaj (Enter)' : 'Postaw (Enter)')}" aria-label="${L(g.id ? 'Move here' : 'Place', g.id ? 'Przenieś tutaj' : 'Postaw')}">${I.ok}</button>`;
+    const it = ITEMS[g.type], sell = g.id && !it.fixed, gift = !g.id && F.stash[g.type] > 0, cant = !g.id && !!whyNot(g.type); // cant: only a preview
+    // the round buttons float under the piece. The green one says what it will do: pay and place (with the price),
+    // place a gift from the stash for free, or move a piece that is already on the farm.
+    const okIcon = g.same ? I.ok : g.id ? I.move : gift ? I.gift : I.buy;
+    const okWhat = g.same ? L('Leave it here', 'Zostaw tutaj') : g.id ? L('Move here', 'Przenieś tutaj') : gift ? L('Place it (free, from the stash)', 'Postaw (za darmo, ze schowka)') : L(`Buy and place (${costText(it.cost)})`, `Kup i postaw (${costText(it.cost)})`);
+    const item = g.id && F.items.find(i => i.id === g.id), back = it.wheel || it.jn || item?.gf; // a gift or prize goes back to the stash
+    const away = !g.id ? `<button type="button" class="round" data-a="cancel" title="${L('Cancel (Esc)', 'Anuluj (Esc)')}" aria-label="${L('Cancel', 'Anuluj')}">${I.no}</button>`
+      : sell ? `<button type="button" class="round sell${back ? '' : ' wide'}" data-a="away" title="${back ? L('Put it in the stash', 'Odłóż do schowka') : L(`Sell (${costText(it.cost)} back)`, `Sprzedaj (zwrot: ${costText(it.cost)})`)}" aria-label="${back ? L('Put it in the stash', 'Odłóż do schowka') : L('Sell', 'Sprzedaj')}">${back ? I.gift : I.bin}${back ? '' : `<span class="gcost">+${costHtml(it.cost)}</span>`}</button>` : '';
+    const fl = $('pf-gfloat');
+    fl.innerHTML = `<div class="gbtns"><button type="button" class="round" data-a="rot" title="${L('Turn (R)', 'Obróć (R)')}" aria-label="${L('Turn', 'Obróć')}">${I.turn}</button>${away}
+      <button type="button" class="round okb${g.id ? '' : ' wide'}" data-a="ok" ${(g.ok || g.same) && !cant ? '' : 'disabled'} title="${okWhat} (Enter)" aria-label="${okWhat}">${okIcon}${g.id ? '' : `<span class="gcost">${gift ? L('Free', 'Za darmo') : costHtml(it.cost, F.inv)}</span>`}</button></div>
+      ${cant ? `<span class="gbad">${L('Just a preview: you cannot buy it yet', 'Tylko podgląd: jeszcze nie możesz tego kupić')}</span>` : g.ok || g.same ? '' : `<span class="gbad">${L('It does not fit there.', 'Tu się nie zmieści.')}</span>`}`;
+    fl.classList.toggle('bad', !g.ok);
+    floatAt = '';
+    paintBuild();
   }
   let floatAt = '';
   // Under the piece's outline on screen, never over it; above it when the bottom bars are too close.
@@ -1144,7 +1172,8 @@ export function mount(app, ctx) {
     if (!show) return;
     const z = uiz(), W = root.clientWidth / z, w = fl.offsetWidth || 150, h = fl.offsetHeight || 48, gap = 10;
     const left = Math.round(Math.max(w / 2 + 8, Math.min(W - w / 2 - 8, x / z)));
-    const dock = root.querySelector('.dock')?.getBoundingClientRect(), floor = (dock && dock.height ? dock.top - root.getBoundingClientRect().top : root.clientHeight) / z - 8;
+    const tray = root.querySelector('#pf-build:not([hidden])')?.getBoundingClientRect(), wideTray = tray && tray.width > root.clientWidth * .8; // the phone tray along the bottom (the side panel never is in the way)
+    const floor = (wideTray ? tray.top - root.getBoundingClientRect().top : root.clientHeight) / z - 8;
     let y = bottom / z + gap; if (y + h > floor) y = top / z - gap - h; // no room below (the bars at the bottom): just above it
     y = Math.round(y);
     const k = left + ',' + y; if (k === floatAt) return; floatAt = k;
@@ -1257,7 +1286,8 @@ export function mount(app, ctx) {
 
   // ---------- actions ----------
   function confirmGhost() {
-    const g = scene?.ghost(); if (!g?.ok) return;
+    const g = scene?.ghost(); if (g?.same) { scene.ghostCancel(); return; } if (!g?.ok) return; // not moved: just put it back down
+    if (!g.id) { const why = whyNot(g.type); if (why) { ctx.toast(why, true); return; } } // only a preview: cannot be bought yet
     lastType = g.id ? null : g.type; lastSpot = [g.x, g.y, g.r];
     ctx.send(g.id ? { t: 'move', id: g.id, x: g.x, y: g.y, r: g.r } : { t: 'place', type: g.type, x: g.x, y: g.y, r: g.r });
     scene.ghostCancel();
@@ -1274,6 +1304,7 @@ export function mount(app, ctx) {
     i.closest('.tm')?.classList.toggle('on', !!panel[i.dataset.tm].mats[i.dataset.mat]);
     const s = root.querySelector('.tsum'), o = root.querySelector('[data-a=offer]'); if (s) s.innerHTML = tradeSum(); if (o) o.disabled = tradeEmpty();
   }
+  root.addEventListener('input', e => { if (e.target.id === 'pf-bq') { query = e.target.value; paintBuild(); } });
   root.addEventListener('input', e => { // amounts in a trade offer: remembered without repainting, so typing is not interrupted
     const i = e.target.closest('[data-tm]'); if (!i || panel?.kind !== 'trade') return;
     const n = Math.max(0, Math.min(+i.max || 9999, Math.floor(+i.value || 0))), m = panel[i.dataset.tm].mats;
@@ -1496,12 +1527,11 @@ export function mount(app, ctx) {
     else if (a === 'petstep') stepPet(+b.dataset.v);
     else if (a === 'send') { lastTrip = { zone: panel.zone, trip: panel.trip, pets: [...panel.pets] }; ctx.send({ t: 'send', ...lastTrip, ...(panel.food && F.inv[panel.food] > 0 ? { food: panel.food } : {}) }); }
     else if (a === 'houseup') { if (!canAfford(F.inv, F.houseNext)) ctx.toast(L('Not enough materials for that yet.', 'Na to jeszcze nie wystarczy materiałów.'), true); else ctx.send({ t: 'houseup' }); }
-    else if (a === 'tab') { tab = b.dataset.tab; paintBuild(); }
+    else if (a === 'tab') { tab = b.dataset.tab; query = ''; listOpen = true; if (bfold) { bfold = false; try { localStorage.setItem('pf_bfold', ''); } catch {} } const q = $('pf-bq'); if (q) q.value = ''; paintBuild(); }
     else if (a === 'expand') { if (b.dataset.low) ctx.toast(L(`Growing the land again needs a level ${F.next.house} farmhouse.`, `Dalsze powiększanie ziemi wymaga domu na poziomie ${F.next.house}.`), true); else if (b.classList.contains('off')) ctx.toast(L('Not enough materials to grow the land yet.', 'Na powiększenie ziemi jeszcze nie wystarczy materiałów.'), true); else ctx.send({ t: 'expand' }); }
-    else if (a === 'item') {
-      scene?.ghostCancel(); panel = { kind: 'buy', type: b.dataset.type }; sfx.click(); paintPanel();
-    }
-    else if (a === 'buy') { const type = b.dataset.type; panel = null; paintPanel(); scene?.ghostNew(type); }
+    else if (a === 'item') takeItem(b.dataset.type);
+    else if (a === 'blist') { listOpen = !listOpen; paintBuild(); }
+    else if (a === 'bfold') { bfold = !bfold; try { localStorage.setItem('pf_bfold', bfold ? '1' : ''); } catch {} paintBuild(); }
     else if (a === 'rot') scene?.ghostRotate();
     else if (a === 'cancel') scene?.ghostCancel();
     else if (a === 'ok') confirmGhost();
