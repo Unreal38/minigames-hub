@@ -114,6 +114,33 @@ export function skyBow() {
   return bow;
 }
 
+// The rainbow as part of the sky (Kuba, 2026-11-27: never stuck to the camera, and it must be easy to see, since it
+// tells players about the Pet Farm rainbow bonus). Fixed in the world like the moon and only carried along as the camera
+// moves. For each camera it settles where that camera first looks, sized to its view and raised so its top shows just
+// under the top of the screen (on the horizon when the camera sees plenty of sky). place(camera, opacity) every frame.
+export function skyBow() {
+  const bow = new THREE.Group(), at = new WeakMap();
+  BOW.forEach((c, i) => bow.add(new THREE.Mesh(bowBand(58 - i * 2.2), new THREE.MeshBasicMaterial({ color: c, vertexColors: true, transparent: true, opacity: 0, fog: false, depthWrite: false }))));
+  bow.children.forEach(m => { m.renderOrder = -7; m.frustumCulled = false; });
+  bow.visible = false;
+  bow.place = (camera, opacity) => {
+    let a = at.get(camera);
+    if (!a) {
+      camera.getWorldDirection(_f);
+      const pitch = Math.asin(Math.max(-1, Math.min(1, _f.y))), half = camera.fov * Math.PI / 360;
+      const hfov = 2 * Math.atan(Math.tan(half) * (camera.aspect || 1)), A = Math.min(.52, Math.max(.21, hfov * .42));
+      const el = Math.max(-1.05, Math.min(-.035, pitch + half - .09 - A));
+      _f.y = 0; if (_f.lengthSq() < 1e-4) _f.set(0, 0, -1); _f.normalize();
+      a = { yaw: Math.atan2(_f.x, _f.z), el, k: Math.tan(A) }; at.set(camera, a);
+    }
+    const far = Math.min(240, camera.far * .85), h = Math.cos(a.el) * far; // out past the scenery, always the same size in the sky
+    bow.position.set(camera.position.x + Math.sin(a.yaw) * h, camera.position.y + Math.sin(a.el) * far, camera.position.z + Math.cos(a.yaw) * h);
+    bow.rotation.set(-a.el, a.yaw, 0, 'YXZ'); bow.scale.setScalar(far * a.k / 58); bow.updateMatrixWorld(true);
+    for (const m of bow.children) m.material.opacity = opacity;
+  };
+  return bow;
+}
+
 export function weatherLayer(scene, { size = 0 } = {}) {
   const root = new THREE.Group(); root.name = 'weather'; scene.add(root);
   const share = SHARE[gfx()] || 1;
