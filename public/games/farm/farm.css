@@ -58,8 +58,8 @@ body.in-game { overflow: hidden; }
 .pf .item[aria-pressed=true] { background: var(--lantern); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 
 .pf .ghostbar { margin-bottom: 4px; background: var(--pf-bg, var(--paper)); color: var(--pf-tx, var(--ink)); border: 3px solid var(--ink); border-radius: 18px; box-shadow: 0 5px 0 #23401c66; padding: 8px 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; max-width: calc(100vw / var(--vz, 1) - 20px); }
-.pf .pfgfloat { position: absolute; left: 0; top: 0; pointer-events: auto; display: flex; gap: 6px; padding: 5px; background: var(--pf-bg, var(--paper)); border: 3px solid var(--ink); border-radius: 999px; box-shadow: 0 4px 0 #23401c55; will-change: transform; }
-.pf .pfgfloat .round { width: 40px; height: 40px; box-shadow: none; display: grid; place-items: center; padding: 0; }
+.pf .pfgfloat { position: absolute; left: 0; top: 0; pointer-events: none; display: flex; gap: 8px; will-change: transform; }
+.pf .pfgfloat .round { pointer-events: auto; width: 42px; height: 42px; box-shadow: 0 3px 0 #23401c66; display: grid; place-items: center; padding: 0; }
 .pf .pfgfloat .round svg { width: 22px; height: 22px; }
 .pf .pfgfloat .okb { background: #7ed37a; color: #1f3d1a; }
 .pf .pfgfloat .okb:disabled { background: #d9d4c8; color: #8a8478; opacity: 1; }

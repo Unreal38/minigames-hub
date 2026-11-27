@@ -1,6 +1,6 @@
 // Pet Farm 3D scene: a low-poly island floating in the sky, with a tile grid, the player's buildings and their wandering pets.
 // Purely visual plus picking: it never decides rules. The client tells it what the farm looks like.
-//   createScene(canvas, { onPick, onGhost, onGhostAt }) ->   onGhostAt(x, y): each frame, where on the canvas the top of the piece being placed is
+//   createScene(canvas, { onPick, onGhost, onGhostAt }) ->   onGhostAt(x, top, bottom, front): each frame, where the piece being placed is on the canvas
 //     setFarm(farm)            show this farm (null = empty island)
 //     setStarters(sp | null)   '' or a species: line up the three starters (that one hops); null: hide them
 //     setEdit(on)              grid lines on or off
@@ -1094,7 +1094,7 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
     const [w, h] = footprint(ghost.type, ghost.r);
     if (LINKS[ghost.type]) { const link = fenceLink(farm?.items, ghost.x, ghost.y, ghost.r, ghost.id); if (link !== ghost.link) { scene.remove(ghost.g); disposeModel(ghost.g); ghost.g = ghostModel(ghost.type, ghost.id, link); scene.add(ghost.g); ghost.link = link; } } // shows how it will join
     placeModel(ghost.g, ghost.type, ghost.x, ghost.y, ghost.r); ghost.g.position.y = .12;
-    ghost.top = new THREE.Box3().setFromObject(ghost.g).max.y; // the floating buttons sit just above it
+    ghost.box = new THREE.Box3().setFromObject(ghost.g); // the floating buttons keep clear of it
     ghost.pad.scale.set(w, h, 1); ghost.pad.position.set(wx(ghost.x, w), .03, wz(ghost.y, h));
     padMat.color.set(ghost.ok ? '#7dff8a' : '#ff6b5a');
     onGhost?.(ghostInfo());
@@ -1336,7 +1336,15 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
     if (skyLook) skyLook.tick(T, air.night, camera);
     pieceBits.forEach((b, i) => { const a = b.a + T * .08; b.g.position.set(Math.cos(a) * b.r, b.y + Math.sin(T * 1.1 + i) * .3, Math.sin(a) * b.r); b.g.rotation.set(Math.sin(T * .7 + i) * .4, T * b.spin, 0); });
     if (ghost) ghost.g.position.y = .12 + Math.sin(T * 4) * .04;
-    if (ghost && onGhostAt) { ghostAt.set(ghost.g.position.x, (ghost.top || 1) + .25, ghost.g.position.z).project(camera); onGhostAt((ghostAt.x + 1) / 2 * W, (1 - ghostAt.y) / 2 * H, ghostAt.z < 1); }
+    if (ghost && onGhostAt && ghost.box) { // the piece's outline on screen: its box's eight corners (the box moved with the bob too)
+      const b = ghost.box, dy = ghost.g.position.y - .12; let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9, front = true;
+      for (let i = 0; i < 8; i++) {
+        ghostAt.set(i & 1 ? b.max.x : b.min.x, (i & 2 ? b.max.y : b.min.y) + dy, i & 4 ? b.max.z : b.min.z).project(camera);
+        const sx = (ghostAt.x + 1) / 2 * W, sy = (1 - ghostAt.y) / 2 * H; if (ghostAt.z >= 1) front = false;
+        x0 = Math.min(x0, sx); x1 = Math.max(x1, sx); y0 = Math.min(y0, sy); y1 = Math.max(y1, sy);
+      }
+      onGhostAt((x0 + x1) / 2, y0, y1, front);
+    }
     renderer.render(scene, camera); afterDraw();
   }
   buildLand();
