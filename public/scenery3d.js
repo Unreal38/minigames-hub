@@ -299,12 +299,22 @@ export function island(w, d, { round = false, grass = '#8bca60', patch = '#7fbf5
       edge = s.getSpacedPoints(n).slice(0, n).map(p => [p.x, p.y]); }
     trim(root, season, edge, round ? -.5 : -.58, seed); }
   // earth band and a rock cone underneath, with loose stones hanging about
-  const band = put(root, rough(new THREE.CylinderGeometry(R * .98, R * .7, 1.6 * depth, round ? 18 : 8, 3), .4), flat(earth), 0, -1.2 * depth);
-  if (!round) band.scale.set(W / R * 1.08, 1, D / R * 1.08), band.rotation.y = Math.PI / 8;
+  // The band's top ring tucks inside the lawn slab and is left smooth, so no lump of earth pokes out through the lawn's
+  // sides (a roughened ring at R * .98 stuck out of round lawns; the stretched octagon's corners stuck out of square ones).
+  // On a square island every column of the band is pulled in to the lawn's rounded outline instead.
+  const bandH = 1.6 * depth, bandY = -1.2 * depth, roundTop = Math.min(R * .98, R - .2 * Math.min(1, -(bandY + bandH / 2) / .5) - .12); // a round lawn's side slopes from R (top) to R - .2 (y -.5)
+  const bandGeo = new THREE.CylinderGeometry(1, round ? R * .7 / roundTop : .76, bandH, round ? 18 : 16, 3); // a round band's bottom stays R * .7 wide, as before
+  { const p = bandGeo.attributes.position, cr = Math.min(W, D) * .3;
+    const edge = a => { if (round) return roundTop;
+      const c = Math.cos(a), s = Math.sin(a); let lo = 0, hi = Math.hypot(W, D); // walk out along the ray to the rounded rectangle's edge
+      for (let k = 0; k < 24; k++) { const m = (lo + hi) / 2, x = Math.abs(c * m) - (W - cr), z = Math.abs(s * m) - (D - cr); (x > 0 && z > 0 ? Math.hypot(x, z) <= cr : Math.abs(c * m) <= W && Math.abs(s * m) <= D) ? lo = m : hi = m; }
+      return lo - .1; };
+    for (let i = 0; i < p.count; i++) { const x = p.getX(i), z = p.getZ(i), r = Math.hypot(x, z); if (r < 1e-6) continue; const k = edge(Math.atan2(z, x)); p.setX(i, x * k); p.setZ(i, z * k); } }
+  const band = put(root, rough(bandGeo, .4, bandH / 2 - .01), flat(earth), 0, bandY);
   const deep = Math.max(W, D) * 1.1 * depth;
-  if (under) { const cone = put(root, rough(new THREE.ConeGeometry(R * .62, deep, 8, 3), R * .08), flat(rock), 0, -2 - deep / 2 * depth);
+  if (under) { const cone = put(root, rough(new THREE.ConeGeometry(R * .62, deep, 8, 3), R * .08), flat(rock), 0, -2 * depth - deep / 2); // its top meets the band's bottom at every depth (it floated free under shallow isles)
   cone.rotation.x = Math.PI; if (!round) cone.scale.set(W / R * 1.1, 1, D / R * 1.1);
-  for (let i = 0; i < 7; i++) { const a = hash(i, seed) * 6.283, k = .35 + hash(i, seed + 9) * .35, st = ico(root, .3 + hash(i, 3) * .5, rock, Math.cos(a) * W * k, -3 - hash(i, 4) * deep * .5, Math.sin(a) * D * k); st.scale.y = 1.4; } }
+  for (let i = 0; i < 7; i++) { const a = hash(i, seed) * 6.283, k = .35 + hash(i, seed + 9) * .35, st = ico(root, (.3 + hash(i, 3) * .5) * Math.min(1, depth), rock, Math.cos(a) * W * k, -3 * depth - hash(i, 4) * deep * .5, Math.sin(a) * D * k); st.scale.y = 1.4; } }
   // what sits in the grass: darker patches and little flowers, kept off the clear middle
   const onRim = (i, s2, inset = .55) => { // a point on the rim band, outside the clear middle
     for (let k = 0; k < 8; k++) { const x = (hash(i * 8 + k, s2) * 2 - 1) * (W - inset), z = (hash(i * 8 + k, s2 + 1) * 2 - 1) * (D - inset); if (clear && Math.hypot(x, z) < clear + inset) continue;

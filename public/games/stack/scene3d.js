@@ -93,7 +93,7 @@ export function createScene(canvas, { onFrame, onCue }) {
     const dirt = new THREE.ConeGeometry(7.2, 7.5, 11, 3), dp = dirt.attributes.position; // the rock underneath, roughened
     for (let i = 0; i < dp.count; i++) { const k = Math.round(dp.getX(i) * 9) + Math.round(dp.getY(i) * 7) * 3 + Math.round(dp.getZ(i) * 5) * 7; if (dp.getY(i) < 3.6) dp.setXYZ(i, dp.getX(i) + (hash(k, 1) - .5) * .9, dp.getY(i) + (hash(k, 2) - .5) * .5, dp.getZ(i) + (hash(k, 3) - .5) * .9); }
     dirt.computeVertexNormals(); const d = put(g, dirt, '#b98a5e', 0, GROUND - .7 - 3.75, 0); d.rotation.x = Math.PI;
-    put(g, new THREE.CylinderGeometry(7.25, 6.6, .5, 11), '#a37449', 0, GROUND - .95, 0);
+    put(g, new THREE.CylinderGeometry(7.1, 6.6, .5, 11), '#a37449', 0, GROUND - .97, 0); // a hair inside and under the lawn, so no lip of earth sticks out or flickers
     // the pedestal: stone steps up to a slab whose top is y = 0
     put(g, new THREE.BoxGeometry(4.6, .2, 4.6), '#8a8794', 0, GROUND + .1, 0);
     put(g, new THREE.BoxGeometry(4.0, .2, 4.0), '#a9a6b0', 0, GROUND + .3, 0);
