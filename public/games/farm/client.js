@@ -1256,6 +1256,27 @@ export function mount(app, ctx) {
     if (n) m[i.dataset.mat] = n; else delete m[i.dataset.mat];
     tradeTouch(i);
   });
+  // Sideways lists (Edit farm's items and the like) scroll with an ordinary mouse wheel and with a mouse drag,
+  // the way a finger already moves them on a phone. Up/down lists keep the browser's own scrolling.
+  const sideList = t => { for (let el = t instanceof Element ? t : null; el && el !== root; el = el.parentElement) { const c = getComputedStyle(el); if (/auto|scroll/.test(c.overflowX) && el.scrollWidth > el.clientWidth + 1) return /auto|scroll/.test(c.overflowY) && el.scrollHeight > el.clientHeight + 1 ? null : el; } return null; };
+  root.addEventListener('wheel', e => {
+    if (e.ctrlKey || Math.abs(e.deltaX) >= Math.abs(e.deltaY)) return; // pinch zoom and real sideways scrolling stay as they are
+    const el = sideList(e.target); if (!el) return;
+    const d = e.deltaY * (e.deltaMode === 1 ? 40 : e.deltaMode === 2 ? el.clientWidth : 1), max = el.scrollWidth - el.clientWidth;
+    if ((d < 0 && el.scrollLeft <= 0) || (d > 0 && el.scrollLeft >= max - 1)) return;
+    e.preventDefault(); el.scrollLeft += d;
+  }, { passive: false });
+  let listDrag = null, eatClick = false;
+  root.addEventListener('pointerdown', e => {
+    if (e.pointerType !== 'mouse' || e.button !== 0) return;
+    const el = sideList(e.target); if (!el) return;
+    listDrag = { el, x: e.clientX, left: el.scrollLeft, moved: false };
+    const move = m => { if (!listDrag) return; const dx = m.clientX - listDrag.x; if (!listDrag.moved && Math.abs(dx) < 6) return; listDrag.moved = true; listDrag.el.scrollLeft = listDrag.left - dx; listDrag.el.style.cursor = 'grabbing'; };
+    const end = () => { removeEventListener('pointermove', move); removeEventListener('pointerup', end); removeEventListener('pointercancel', end); if (listDrag?.moved) { eatClick = true; setTimeout(() => { eatClick = false; }, 0); listDrag.el.style.cursor = ''; } listDrag = null; };
+    addEventListener('pointermove', move); addEventListener('pointerup', end); addEventListener('pointercancel', end);
+  });
+  root.addEventListener('dragstart', e => { if (sideList(e.target)) e.preventDefault(); }); // a picture in the list must not start a browser drag
+  root.addEventListener('click', e => { if (eatClick) { eatClick = false; e.preventDefault(); e.stopImmediatePropagation(); } }, true); // the drag's release does not pick an item
   // the Pantry list and the phone's More menu fold away on a tap anywhere else (or on something picked in them)
   root.addEventListener('click', e => {
     if (matsOpen && (!e.target.closest('.pfmatsrow') || e.target.closest('.pfpanl [data-a]'))) { matsOpen = false; paintTop(); }
