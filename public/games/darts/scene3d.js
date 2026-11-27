@@ -170,7 +170,7 @@ export function createScene(canvas, { onFrame, onCue } = {}) {
       const wrap = new THREE.Group(); wrap.scale.setScalar(AV); wrap.add(av); scene.add(wrap);
       const [hx, hz, hy] = homeOf(i); wrap.position.set(hx, hy, hz);
       av.traverse(o => { if (o.isMesh) o.castShadow = true; });
-      for (const arm of av.userData.arms) { let lo = 0; arm.traverse(m => { if (m.isMesh && m.geometry) { m.geometry.computeBoundingBox(); lo = Math.min(lo, m.geometry.boundingBox.min.y); } }); arm.userData.hand = lo + .05; }
+      for (const arm of av.userData.arms) { let lo = arm.userData.bb?.min.y ?? 0; arm.traverse(m => { if (m.isMesh && m.geometry) { m.geometry.computeBoundingBox(); lo = Math.min(lo, m.geometry.boundingBox.min.y); } }); arm.userData.hand = lo + .05; }
       return { i, wrap, av, face: 0, ph: 0, walk: 0, hop: 0, seed: i * 1.9, tag: { x: 0, y: 0, show: false } };
     });
     shadowFor = 10;

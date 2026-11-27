@@ -11,6 +11,8 @@
 //                           and lift it by 0.76 x that size so the feet (or the seat) rest on the floor.
 //   walkAvatar(g, ph, amt) call after animateAvatar on a standing avatar: ph is the stride phase, amt 0..1 blends it in.
 //   disposeAvatar(g)     frees its textures, materials and merged geometry.
+//   partBox(part)        world box of ud.head, an arm or a leg (the whole avatar is ONE skinned mesh + outline + face,
+//                        so Box3.setFromObject on a part no longer sees its shape; on the whole avatar it still works).
 //   bake(root)           merges a group's static meshes into a few (see below); any 3D game can use it on its props.
 import * as THREE from 'three';
 import { SKINS, HAIR_COLS, EYE_COLS, BOTTOM_COLS, SHOE_COLS, avObj } from './avatar.js';
@@ -167,36 +169,107 @@ const hullOf = (p, nn, w, out, at, hard) => {
     out[at + i] = p[i] + v[0] / l * w; out[at + i + 1] = p[i + 1] + v[1] / l * w; out[at + i + 2] = p[i + 2] + v[2] / l * w; }
 };
 
-// Merge every stub mesh under root (not inside a group flagged userData.own) into one coloured mesh plus its outline.
-const _m = new THREE.Matrix4(), _i = new THREE.Matrix4(), _c = new THREE.Color();
-function merge(root, mat, extra = []) {
+// Merge every stub mesh of the avatar into ONE skinned mesh plus ONE skinned outline (2 draw calls, the face is the 3rd).
+// The moving pieces (body, head, each arm and elbow, each leg and knee) are the skeleton's bones: they stay ordinary
+// groups that games turn as before, and each point follows the bone it was built under. Limb tubes (see tube()) carry
+// a second bone and a weight per point, so they bend smoothly at the elbow and knee instead of being separate pieces
+// whose outlines would ring every joint. extra: [{ bone, pos, nor }] outline-only shapes (the face joins the head's rim).
+const _m = new THREE.Matrix4(), _i = new THREE.Matrix4(), _c = new THREE.Color(), _jb = new THREE.Matrix4(), _jv = new THREE.Vector3(), _jw = new THREE.Vector3(), _jn = new THREE.Vector3(), _jm = new THREE.Vector3(), _bl = new THREE.Matrix4();
+function merge(root, bones, mat, extra = []) {
   root.updateWorldMatrix(true, true); _i.copy(root.matrixWorld).invert();
-  const parts = [], gone = []; let n = 0;
-  const walk = o => { for (const ch of o.children) {
-    if (ch.userData.own) continue;
+  const bi = new Map(bones.map((b, i) => [b, i])), parts = [], gone = []; let n = 0;
+  const walk = (o, b) => { for (const ch of o.children) {
+    const cb = bi.has(ch) ? bi.get(ch) : b;
     if (ch.isMesh && ch.material === stub) {
       const ink = inkOf(ch);
-      const g = ch.geometry.index ? ch.geometry.toNonIndexed() : ch.geometry.clone(); g.applyMatrix4(_m.multiplyMatrices(_i, ch.matrixWorld));
-      parts.push([g.attributes.position.array, g.attributes.normal.array, _c.set(ch.userData.c).clone(), ink, ch.userData.cs && g.attributes.tone ? [g.attributes.tone.array, ch.userData.cs.map(c => new THREE.Color(c))] : null]); n += g.attributes.position.count; g.dispose(); gone.push(ch);
-    } else walk(ch);
+      const g = ch.geometry.index ? ch.geometry.toNonIndexed() : ch.geometry.clone(), jw = g.attributes.jw, cnt = g.attributes.position.count;
+      const sk = new Uint8Array(cnt * 2), w = new Float32Array(cnt); sk.fill(cb);
+      if (jw && ch.userData.jb) { // a limb tube: straight in its own bone's space; the far end follows the next bone
+        const jb = ch.userData.jb, k2 = bi.get(jb), P = g.attributes.position, N = g.attributes.normal;
+        _m.multiplyMatrices(_i, ch.matrixWorld); _jb.multiplyMatrices(_i, jb.matrixWorld).multiply(_bl.makeTranslation(-jb.position.x, -jb.position.y, -jb.position.z));
+        for (let v = 0; v < cnt; v++) {
+          const t = jw.getX(v); sk[v * 2 + 1] = k2; w[v] = t;
+          _jv.fromBufferAttribute(P, v); _jw.copy(_jv).applyMatrix4(_jb); _jv.applyMatrix4(_m).lerp(_jw, t); P.setXYZ(v, _jv.x, _jv.y, _jv.z);
+          _jn.fromBufferAttribute(N, v); _jm.copy(_jn).transformDirection(_jb); _jn.transformDirection(_m).lerp(_jm, t).normalize(); N.setXYZ(v, _jn.x, _jn.y, _jn.z);
+        }
+      } else g.applyMatrix4(_m.multiplyMatrices(_i, ch.matrixWorld));
+      parts.push([g.attributes.position.array, g.attributes.normal.array, _c.set(ch.userData.c).clone(), ink, ch.userData.cs && g.attributes.tone ? [g.attributes.tone.array, ch.userData.cs.map(c => new THREE.Color(c))] : null, sk, w]); n += cnt; g.dispose(); gone.push(ch);
+    } else walk(ch, cb);
   } };
-  walk(root);
+  walk(root, 0);
   for (const m of gone) m.parent.remove(m);
-  for (const e of extra) parts.push([e.pos, e.nor, null, { w: OUTLINE, col: INK, hard: false }]);
-  let ln = 0; for (const q of parts) ln += q[0].length / 3;
-  const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), col = new Float32Array(n * 3), lpos = new Float32Array(ln * 3), lcol = new Float32Array(ln * 3); let o = 0;
-  for (const [p, nn, c, ink, tn] of parts) {
-    if (c) { pos.set(p, o); nor.set(nn, o); for (let i = 0; i < p.length; i += 3) { const k = tn ? tn[1][Math.round(tn[0][i / 3])] : c; col[o + i] = k.r; col[o + i + 1] = k.g; col[o + i + 2] = k.b; } } // hair carries a tone per point (see hair3d.js)
+  const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), col = new Float32Array(n * 3), si = new Uint8Array(n * 4), sw = new Float32Array(n * 4);
+  let ln = n; for (const e of extra) ln += e.pos.length / 3;
+  const lpos = new Float32Array(ln * 3), lcol = new Float32Array(ln * 3), lsi = new Uint8Array(ln * 4), lsw = new Float32Array(ln * 4); let o = 0;
+  const skinAt = (sI, sW, v, a, b, t) => { sI[v * 4] = a; sI[v * 4 + 1] = b; sW[v * 4] = 1 - t; sW[v * 4 + 1] = t; };
+  for (const [p, nn, c, ink, tn, sk, w] of parts) {
+    pos.set(p, o); nor.set(nn, o); for (let i = 0; i < p.length; i += 3) { const k = tn ? tn[1][Math.round(tn[0][i / 3])] : c; col[o + i] = k.r; col[o + i + 1] = k.g; col[o + i + 2] = k.b; } // hair carries a tone per point (see hair3d.js)
     hullOf(p, nn, ink.w, lpos, o, ink.hard); for (let i = 0; i < p.length; i += 3) { lcol[o + i] = ink.col.r; lcol[o + i + 1] = ink.col.g; lcol[o + i + 2] = ink.col.b; }
+    for (let v = 0, q = o / 3 * 4; v < p.length / 3; v++, q += 4) { si[q] = sk[v * 2]; si[q + 1] = sk[v * 2 + 1]; sw[q] = 1 - w[v]; sw[q + 1] = w[v]; }
     o += p.length;
   }
+  lsi.set(si); lsw.set(sw); // the outline's first n points are the model's own, in the same order
+  for (const e of extra) { hullOf(e.pos, e.nor, OUTLINE, lpos, o, false); for (let i = 0; i < e.pos.length; i += 3) { lcol[o + i] = INK.r; lcol[o + i + 1] = INK.g; lcol[o + i + 2] = INK.b; skinAt(lsi, lsw, (o + i) / 3, bi.get(e.bone), 0, 0); } o += e.pos.length; }
+  // each bone's bounds in its own space, from the outline (it wraps the model): ob its own points, bb with its elbow or
+  // knee as well (an arm or a leg as one part, for partBox())
+  const inv = bones.map(b => _m.multiplyMatrices(_i, b.matrixWorld).clone().invert().elements), lo = new Float32Array(bones.length * 6).fill(Infinity), hi = new Float32Array(bones.length * 6).fill(-Infinity);
+  const grow = (j, x, y, z, o) => { const e = inv[j], q = j * 6 + o; // o 0: the bone's own points, 3: with its elbow or knee
+    const X = e[0] * x + e[4] * y + e[8] * z + e[12], Y = e[1] * x + e[5] * y + e[9] * z + e[13], Z = e[2] * x + e[6] * y + e[10] * z + e[14];
+    if (X < lo[q]) lo[q] = X; if (X > hi[q]) hi[q] = X; if (Y < lo[q + 1]) lo[q + 1] = Y; if (Y > hi[q + 1]) hi[q + 1] = Y; if (Z < lo[q + 2]) lo[q + 2] = Z; if (Z > hi[q + 2]) hi[q + 2] = Z; };
+  const up = bones.map(b => b.userData.sub ? bi.get(b.parent) : -1);
+  for (let v = 0; v < ln; v++) { const k = lsw[v * 4 + 1] > .5 ? lsi[v * 4 + 1] : lsi[v * 4], x = lpos[v * 3], y = lpos[v * 3 + 1], z = lpos[v * 3 + 2];
+    grow(k, x, y, z, 0); if (up[k] >= 0) grow(up[k], x, y, z, 3); }
+  bones.forEach((b, j) => { const q = j * 6, ob = new THREE.Box3(new THREE.Vector3(lo[q], lo[q + 1], lo[q + 2]), new THREE.Vector3(hi[q], hi[q + 1], hi[q + 2]));
+    b.userData.ob = ob; b.userData.bb = ob.clone().union(new THREE.Box3(new THREE.Vector3(lo[q + 3], lo[q + 4], lo[q + 5]), new THREE.Vector3(hi[q + 3], hi[q + 4], hi[q + 5]))); });
+  const sk = new THREE.Skeleton(bones);
+  const mk = (geo, m) => { const s = new THREE.SkinnedMesh(geo, m); s.userData.baked = true; root.add(s); s.bind(sk, root.matrixWorld); return s; };
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-  const mesh = new THREE.Mesh(g, mat); mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.baked = true; root.add(mesh);
+  g.setAttribute('skinIndex', new THREE.BufferAttribute(si, 4)); g.setAttribute('skinWeight', new THREE.BufferAttribute(sw, 4));
   const lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.BufferAttribute(lpos, 3)); lg.setAttribute('color', new THREE.BufferAttribute(lcol, 3));
-  const line = new THREE.Mesh(lg, lineMat); line.userData.baked = true; root.add(line);
+  lg.setAttribute('skinIndex', new THREE.BufferAttribute(lsi, 4)); lg.setAttribute('skinWeight', new THREE.BufferAttribute(lsw, 4));
+  const mesh = mk(g, mat), line = mk(lg, lineMat); mesh.castShadow = true; mesh.receiveShadow = true;
+  // bounds for culling, wide enough for any arm swing or stride (computing them from the bones would skin every point on the CPU)
+  lg.computeBoundingSphere(); for (const s of [mesh, line]) { s.boundingSphere = lg.boundingSphere.clone(); s.boundingSphere.radius *= 1.25; }
+  // Box3.setFromObject reads boundingBox: give the box of the pose it is in now, from the bones (three would skin every
+  // point on the CPU once and then keep that box whatever the avatar does later)
+  const box = new THREE.Box3(), _bx = new THREE.Box3();
+  const now = () => { box.makeEmpty(); root.updateWorldMatrix(true, true); _jb.copy(mesh.matrixWorld).invert();
+    for (const b of bones) if (!b.userData.ob.isEmpty()) box.union(_bx.copy(b.userData.ob).applyMatrix4(_bl.multiplyMatrices(_jb, b.matrixWorld)));
+    return box; };
+  for (const s of [mesh, line]) Object.defineProperty(s, 'boundingBox', { get: now, set() {}, configurable: true });
   return mesh;
 }
+// Where a part of an avatar is, in world space: its bone's own bounds (see merge) plus any separate meshes on it.
+// Use it instead of Box3.setFromObject on ud.head, an arm or a leg: their shape now lives in the avatar's one skinned mesh.
+const _pbx = new THREE.Box3();
+export function partBox(o, out = new THREE.Box3()) {
+  o.updateWorldMatrix(true, true); out.makeEmpty();
+  if (o.userData.bb && !o.userData.bb.isEmpty()) out.copy(o.userData.bb).applyMatrix4(o.matrixWorld);
+  return out.union(_pbx.setFromObject(o));
+}
+// One limb as a single tube round its bone's y axis, so arm or leg, joint and outline are all one smooth piece.
+// prof: [[r, y, tone], ...] from the top down (r 0 at an end closes it); tones index cs (the colours along it).
+// Points below the joint at y = jy follow the bone jb, blended over (jy + up) .. (jy - down) so it bends round.
+const tube = (p, prof, cs, jb, jy, up, down) => {
+  const S = SEG, pos = [], nor = [], tone = [], jw = [], idx = [], L = prof.length;
+  const at = j => { let a = j, b = j; while (a > 0 && prof[a - 1][0] === prof[j][0] && prof[a - 1][1] === prof[j][1]) a--; while (b < L - 1 && prof[b + 1][0] === prof[j][0] && prof[b + 1][1] === prof[j][1]) b++; return [prof[Math.max(0, a - 1)], prof[Math.min(L - 1, b + 1)]]; };
+  for (let j = 0; j < L; j++) {
+    const [r, y, t] = prof[j], [A, B] = at(j); let nr = A[1] - B[1], ny = B[0] - A[0]; const l = Math.hypot(nr, ny) || 1; nr /= l; ny /= l;
+    if (r === 0) { nr = 0; ny = j ? -1 : 1; } // the round ends
+    const u = Math.min(1, Math.max(0, (jy + up - y) / (up + down))), wt = u * u * (3 - 2 * u);
+    for (let i = 0; i <= S; i++) { const ph = i / S * PI * 2, sn = Math.sin(ph), cs2 = Math.cos(ph); pos.push(r * sn, y, r * cs2); nor.push(nr * sn, ny, nr * cs2); tone.push(t); jw.push(wt); }
+  }
+  for (let j = 0; j < L - 1; j++) for (let i = 0; i < S; i++) { const a = j * (S + 1) + i, b = a + S + 1; idx.push(a, b, a + 1, b, b + 1, a + 1); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute('tone', new THREE.Float32BufferAttribute(tone, 1)); g.setAttribute('jw', new THREE.Float32BufferAttribute(jw, 1)); g.setIndex(idx);
+  const o = put(p, g, cs[0]); o.userData.cs = cs; o.userData.jb = jb; return o;
+};
+// a profile point list with extra rings every d between y0 and y1 (so a bend has rings to bend with)
+const rings = (pr, y0, y1, d) => { const out = []; for (let j = 0; j < pr.length; j++) { out.push(pr[j]); const b = pr[j + 1]; if (!b) break; const a = pr[j];
+  const lo = Math.max(Math.min(a[1], b[1]), y1), hi = Math.min(Math.max(a[1], b[1]), y0); if (hi - lo < d * 1.5 || a[1] === b[1]) continue;
+  const k = Math.ceil((hi - lo) / d); for (let q = 1; q < k; q++) { const y = a[1] > b[1] ? hi - (hi - lo) * q / k : lo + (hi - lo) * q / k, f = (y - a[1]) / (b[1] - a[1]); if (f > 0 && f < 1) out.push([a[0] + (b[0] - a[0]) * f, y, a[2]]); } }
+  return out; };
 
 // ---------- the head: a round shape with the face painted on, like an anime figure ----------
 // A "marshmallow" head: full cheeks, a nearly flat underside and a flattish top, so the jaw never narrows to a cone at the neck.
@@ -592,7 +665,10 @@ export function avatar3d(color, avIn, { pose = 'sit', hand = true } = {}) { // h
 
   // torso: a soft bean. Hips take the bottom colour.
   const y0 = hipY - .05 * H, t = shY - y0, wy = y0 + .42 * t, yT = shY + .015 * H;
-  const TP = [[0, y0], [hi * .55, y0 + .01 * t], [hi * .9, y0 + .07 * t], [hi, y0 + .18 * t], [wa, y0 + .45 * t], [ch, y0 + .72 * t], [sh * .97, y0 + .86 * t], [sh * .8, y0 + .95 * t], [sh * .45, yT], [0, yT]];
+  // The legs hang at legX; on builds with thick legs and narrow hips (Athletic, Broad) the hips are filled out at the
+  // bottom so the tops of the thighs (narrowed a little, see the leg tube) stay inside them instead of sticking out.
+  const legX = Math.max(hi * .5, lb * 1.3), hL = Math.max(hi, (legX + lb * 1.55 * .86) / .95 + .004);
+  const TP = [[0, y0], [hL * .55, y0 + .01 * t], [hL * .9, y0 + .07 * t], [Math.max(hi, hL * .97), y0 + .18 * t], [wa, y0 + .45 * t], [ch, y0 + .72 * t], [sh * .97, y0 + .86 * t], [sh * .8, y0 + .95 * t], [sh * .45, yT], [0, yT]];
   // depth is its own gentle profile, so a wide build gets wider and never sticks out in front
   const dhi = Math.min(hi, wa * 1.06) * dz, dch = Math.min(ch, wa * 1.12) * dz, DP = [[0, y0], [dhi * .55, y0 + .01 * t], [dhi * .9, y0 + .07 * t], [dhi, y0 + .18 * t], [wa * dz, y0 + .45 * t], [dch, y0 + .72 * t], [dch * .93, y0 + .86 * t], [dch * .78, y0 + .95 * t], [sh * .45 * dz, yT], [0, yT]];
   const zk = { key: 'z' + DP.map(q => f3(q[0])).join(), f: y => { const r = rAt(TP, y); return r > 1e-4 ? rAt(DP, y) / r : dz; } };
@@ -796,11 +872,13 @@ export function avatar3d(color, avIn, { pose = 'sit', hand = true } = {}) { // h
   for (const s of [-1, 1]) {
     const arm = new THREE.Group(); arm.userData.own = true; arm.position.set(s * shX, shY - lb * 1.05, 0); arm.rotation.z = s * reach; g.add(arm);
     const slC = noSl ? skin : slvC, cuff = top === 33 ? '#fbf8f0' : top === 34 ? gold : top === 36 ? '#f4f1ea' : top === 31 ? COFFEE : top === 9 || top === 2 ? '#ffffff' : top === 14 ? dk : top === 22 ? topC : shade(slvC, .82);
-    sph(arm, lb * 1.02, slC, 0, 0, 0); cyl(arm, lb * 1.08, lb * .95, ua, longSl ? slvC : skin, 0, -ua / 2, 0);
     if (!longSl && !noSl) { cyl(arm, lb * 1.28, lb * 1.34, ua * .55, slvC, 0, -ua * .27, 0); if (top === 10 || top === 17 || top === 13) cyl(arm, lb * 1.37, lb * 1.37, ua * .12, top === 10 ? topC : top === 13 ? '#ffffff' : dk, 0, -ua * .5, 0); }
-    const el = new THREE.Group(); el.position.y = -ua; arm.add(el);
-    sph(el, lb * .95, longSl ? slvC : skin, 0, 0, 0);
-    if (top === 15) cyl(el, lb * 1.0, lb * 2.0, fa * .9, slvC, 0, -fa * .45, 0); else cyl(el, lb * .94, lb * .86, fa, longSl ? slvC : skin, 0, -fa / 2, 0);
+    const el = new THREE.Group(); el.position.y = -ua; el.userData.sub = true; arm.add(el);
+    // shoulder, upper arm, elbow and forearm are one tube that bends at the elbow (the shoulder takes the top's colour)
+    const R0 = lb * 1.04, aC = longSl ? slvC : skin;
+    tube(arm, rings([[0, R0, 0], [R0 * .5, R0 * .87, 0], [R0 * .87, R0 * .5, 0], [lb * 1.06, 0, 0], [lb * 1.06, 0, 1], [lb * .95, -ua, 1], [lb * .86, -ua - fa, 1],
+      [lb * .62, -ua - fa - lb * .35, 1], [0, -ua - fa - lb * .5, 1]], -ua + lb * 1.2, -ua - lb * 1.2, lb * .3), [slC, aC], el, -ua, lb * .8, lb * .8);
+    if (top === 15) cyl(el, lb * 1.0, lb * 2.0, fa * .9, slvC, 0, -fa * .45, 0);
     if (longSl && top !== 15) cyl(el, lb * 1.0, lb * 1.0, fa * .16, cuff, 0, -fa * .92, 0);
     sph(el, lb * 1.22, skin, 0, -fa - lb * .5, 0);
     if (top === 21) { sph(arm, lb * 1.5, '#8f98a3', 0, lb * .25, 0).scale.y = .72; cyl(arm, lb * 1.2, lb * 1.2, ua * .16, '#7d858f', 0, -ua * .55, 0); }
@@ -828,11 +906,13 @@ export function avatar3d(color, avIn, { pose = 'sit', hand = true } = {}) { // h
   // legs and big rounded shoes. Seated, the legs dangle forward off the seat.
   const tl = legLen * .5, shoeH = H * .05, sl = legLen - tl - shoeH, shortLeg = (bot === 2 || bot === 13) && !dress;
   for (const s of [-1, 1]) {
-    const leg = new THREE.Group(); leg.position.set(s * Math.max(hi * .5, lb * 1.45), hipY, 0); g.add(leg);
+    const leg = new THREE.Group(); leg.position.set(s * legX, hipY, 0); g.add(leg);
     const wide = bot === 8 && !skirt, slim = bot === 7 && !suit && !skirt, plain = !skirt && !suit, cuffd = bot === 9 && plain, cargo = bot === 10 && plain, flare = bot === 14 && plain, track = bot === 16 && plain, kT = wide ? 1.7 : slim ? 1.36 : cargo ? 1.66 : flare ? 1.45 : 1.55, kK = wide ? 1.6 : slim ? 1.12 : cuffd ? 1.36 : cargo ? 1.44 : flare ? 1.08 : 1.3, kA = wide ? 2.05 : flare ? 2.35 : slim ? .92 : bot === 4 && plain ? .96 : track ? 1.16 : cuffd ? 1.24 : cargo ? 1.08 : 1.05;
-    cyl(leg, lb * kT, lb * kK, tl, skirt ? skin : botC, 0, -tl / 2, 0);
-    const kn = new THREE.Group(); kn.position.y = -tl; leg.add(kn);
-    const lc = skirt || shortLeg ? skin : botC; sph(kn, lb * (kK - .02), lc, 0, 0, 0); cyl(kn, lb * (kK - .04), lb * kA, sl, lc, 0, -sl / 2, 0);
+    const kn = new THREE.Group(); kn.position.y = -tl; kn.userData.sub = true; leg.add(kn);
+    // thigh, knee and shin are one tube that bends at the knee; shorts change to skin under their hem
+    const lc = skirt || shortLeg ? skin : botC, rH = lb * (kT + (kK - kT) * .9);
+    tube(leg, rings([[0, lb * .15, 0], [lb * kT * .65, lb * .1, 0], [lb * kT * .86, 0, 0], [lb * kT, -tl * .35, 0], [rH, -tl * .9, 0], [rH, -tl * .9, 1], [lb * kK, -tl, 1], [lb * kA, -tl - sl, 1],
+      [lb * kA * .7, -tl - sl - shoeH * .3, 1], [0, -tl - sl - shoeH * .45, 1]], -tl + lb * 1.2, -tl - lb * 1.4, lb * .3), [skirt ? skin : botC, lc], kn, -tl, lb * .5, lb * 1.0);
     if (top === 29) { box(leg, lb * .7, tl * .7, .02, '#f4f1ea', 0, -tl * .5, lb * 1.52); box(kn, lb * .6, sl * .7, .02, '#f4f1ea', 0, -sl * .5, lb * 1.22); }
     if (shortLeg && bot === 2) cyl(leg, lb * 1.42, lb * 1.46, tl * .14, shade(botC, .8), 0, -tl * .9, 0);
     if (shortLeg && bot === 13) { cyl(leg, lb * 1.6, lb * 1.66, tl * .3, botC, 0, -tl * .82, 0); hibiscus(leg, s * lb * 1.62, -tl * .55, lb * .3, s * PI / 2 - s * .3); hibiscus(leg, s * lb * .4, -tl * .8, lb * 1.6, 0, .028); }
@@ -922,7 +1002,7 @@ export function avatar3d(color, avIn, { pose = 'sit', hand = true } = {}) { // h
     // The skirt's top must hold the thighs (same place and size as the leg loop above, plus a little room for the outline):
     // on a build with thick legs and narrow hips (Athletic) hi * 1.12 is too tight, so the skirt is made wider there and
     // deep enough that the round thigh fits in its oval, and the hem grows by the same amount so the shape stays the same.
-    const lx = Math.max(hi * .5, lb * 1.45), lr = lb * 1.55 + .014, rH = Math.max(hi * 1.12, lx + lr + .01), rE = rE0 * rH / (hi * 1.12);
+    const lx = legX, lr = lb * 1.55 + .014, rH = Math.max(hi * 1.12, lx + lr + .01), rE = rE0 * rH / (hi * 1.12);
     let kz = Math.max(dz * Math.min(1, wa * 1.25 / hi), lb * 2 / (hi * 1.12));
     for (let i = 0; i <= 24; i++) { const an = i / 24 * PI, px = lx + lr * Math.cos(an), pz = lr * Math.sin(an); if (px < rH * .995) kz = Math.max(kz, pz / (rH * Math.sqrt(1 - (px / rH) ** 2))); }
     if (seated) { const R = Math.max(hi * 1.35, (lx + lr) * 1.1); sph(g, R, c, 0, hipY + lb * .5, tl * .36).scale.set(1, Math.max(.32, (lr - lb * .5 + .016) / R), 1.1); if (sLen > 1) { const dr = cyl(g, hi * 1.15, hi * 1.25, sl * .9, c, 0, hipY - sl * .15, tl * 1.0); dr.scale.z = .5; dr.rotation.x = -.5; } }
@@ -1230,12 +1310,11 @@ export function avatar3d(color, avIn, { pose = 'sit', hand = true } = {}) { // h
   const face = new THREE.Mesh(faceGeo, faceMat); face.castShadow = true; face.userData.face = true; face.visible = !mascot; hg.add(face);
   root.updateWorldMatrix(true, true);
   // the face joins the head's outline so the whole head gets one clean rim
-  const fg = faceGeo.toNonIndexed(); fg.applyMatrix4(new THREE.Matrix4().copy(hp.matrixWorld).invert().multiply(face.matrixWorld));
-  merge(hp, mat, mascot ? [] : [{ pos: fg.attributes.position.array, nor: fg.attributes.normal.array }]); fg.dispose();
+  const fg = faceGeo.toNonIndexed(); fg.applyMatrix4(new THREE.Matrix4().copy(root.matrixWorld).invert().multiply(face.matrixWorld));
+  const bones = [g, hp];
+  g.traverse(o => { if (o.userData.sub) bones.push(o.parent, o); });
+  merge(root, bones, mat, mascot ? [] : [{ bone: hp, pos: fg.attributes.position.array, nor: fg.attributes.normal.array }]); fg.dispose();
   for (const t of tmpGeo) t.dispose();
-  for (const arm of ud.arms) merge(arm, mat);
-  for (const leg of ud.legs) { merge(leg.userData.kn, mat); merge(leg, mat); }
-  merge(g, mat);
   ud.head = hp; ud.tilt = seated ? -.26 : 0; hp.rotation.x = ud.tilt; ud.body = g; ud.k = k; ud.faceMat = faceMat; ud.to = to; ud.tc = tc; ud.mat = mat;
   ud.headH = headH * k; ud.headY = g.position.y + (shY + neckL + .03 * H + headH * .48) * k;
   root.userData = ud;
@@ -1272,7 +1351,7 @@ export function walkAvatar(g, ph, amt = 1) {
 export function disposeAvatar(g) {
   const u = g.userData;
   u.gone = true;
-  g.traverse(m => { if (m.isMesh && (m.userData.baked || m.userData.face)) m.geometry.dispose(); });
+  g.traverse(m => { if (m.isMesh && (m.userData.baked || m.userData.face)) m.geometry.dispose(); if (m.isSkinnedMesh) m.skeleton.dispose(); });
   u.to?.dispose(); u.tc?.dispose(); u.faceMat?.dispose(); u.mat?.dispose();
 }
 
@@ -1298,7 +1377,7 @@ export function headSpots() {
     if (!root || ud.gone) { LIVE.delete(ref); continue; }
     const h = ud.head; if (!h || !shown(root, scene)) continue;
     if (!ud.hb) { // the head's bounds (hair and hats included), once, in the head's own space
-      h.updateWorldMatrix(true, true); _nsB.setFromObject(h); if (_nsB.isEmpty()) continue;
+      partBox(h, _nsB); if (_nsB.isEmpty()) continue;
       _nsB.getBoundingSphere(_nsS); h.getWorldScale(_nsK);
       ud.hb = { c: h.worldToLocal(_nsS.center.clone()), r: _nsS.radius / (_nsK.x || 1) };
     }
