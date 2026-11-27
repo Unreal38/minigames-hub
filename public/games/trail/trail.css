@@ -48,11 +48,11 @@ body.night .tt-mark.wild b { filter: brightness(1.4); }
 .tt .banner { position: static; transform: none; background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); border-radius: 18px; padding: 6px 18px; font-family: var(--fd); font-weight: 500; font-size: 17px; text-align: center; box-shadow: 0 3px 0 #23401c55; max-width: 100%; box-sizing: border-box; }
 .tt .banner b { font-weight: 700; }
 .tt .banner:empty { display: none; }
+.tt-log { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding-left: 54px; }
+.tt-log > div { background: color-mix(in srgb, var(--paper) 94%, transparent); color: var(--soft-tx); border: 1.5px solid color-mix(in srgb, var(--ink) 25%, transparent); border-radius: 999px; padding: 1px 12px; font-size: 13px; }
+.tt-log > div:first-child { color: var(--on-paper); }
 .tt .banner.pop { animation: ttpop .32s cubic-bezier(.3, 1.6, .5, 1) both; }
 @keyframes ttpop { 0% { transform: scale(.85); } 100% { transform: scale(1); } }
-.tt-log { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.tt-log > div { background: color-mix(in srgb, var(--paper) 94%, transparent); color: var(--soft-tx); border: 1.5px solid color-mix(in srgb, var(--ink) 25%, transparent); border-radius: 999px; padding: 1px 12px; font-size: 13px; text-align: center; }
-.tt-log > div:first-child { color: var(--on-paper); }
 
 /* the players down the left */
 .tt-side { position: absolute; left: 14px; top: calc(max(14px, env(safe-area-inset-top)) + 58px); display: flex; flex-direction: column; gap: 6px; width: 226px; max-height: calc(100vh / var(--vz, 1) - 220px); overflow: auto; scrollbar-width: none; }
@@ -84,7 +84,7 @@ body.night .tt-mark.wild b { filter: brightness(1.4); }
 .tt-die .face i.on { background: var(--ink); }
 .tt-dpi { width: 52px; height: 52px; background: #fff; border: 3px solid var(--ink); border-radius: 50%; }
 
-.tt .shout { position: absolute; left: 50%; top: 62%; transform: translate(-50%, -50%) scale(.6); opacity: 0; pointer-events: none !important; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; width: max-content; max-width: calc(92vw / var(--vz, 1)); z-index: 3; }
+.tt .shout { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%) scale(.6); opacity: 0; pointer-events: none !important; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; width: max-content; max-width: calc(92vw / var(--vz, 1)); z-index: 3; }
 .tt .shout b { font-family: var(--fd); font-weight: 700; font-size: clamp(40px, calc(8vw / var(--vz, 1)), 74px); line-height: 1; color: var(--cream); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 0 6px 0 var(--ink); }
 .tt .shout > span { font-family: var(--fd); font-weight: 600; font-size: clamp(16px, calc(3vw / var(--vz, 1)), 22px); background: var(--ink); color: var(--cream); border-radius: 999px; padding: 3px 16px; }
 .tt .shout.show { animation: ttbig var(--ms, 1.6s) cubic-bezier(.3, 1.6, .5, 1) both; }
@@ -203,9 +203,7 @@ body.night .tt-odds { background: var(--paper); border: 1.5px solid var(--card-e
   .tt-news { top: calc(var(--side-b, 100px) + 8px); }
   .tt-ov { padding-top: calc(var(--side-b, 100px) + 8px); align-items: start; }
   .tt .banner { font-size: 15px; padding: 4px 12px; }
-  .tt-log > div { font-size: 12px; }
-  .tt-log { display: none; } /* phones: Tux's banner carries the news; older lines would sit on the name tags */
-  .tt-dock:has(.tt-acts) { padding: 9px 8px 10px; border-radius: 18px; width: calc(100vw / var(--vz, 1) - 16px); max-height: calc(100vh / var(--vz, 1) - 170px); gap: 8px; }
+    .tt-dock:has(.tt-acts) { padding: 9px 8px 10px; border-radius: 18px; width: calc(100vw / var(--vz, 1) - 16px); max-height: calc(100vh / var(--vz, 1) - 170px); gap: 8px; }
   .tt-acts { gap: 6px; }
   .tt-acts.shop { grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
   .tt-opt { width: calc(50% - 3px); min-height: 56px; grid-template-columns: 34px minmax(0, 1fr); gap: 4px 7px; padding: 6px 7px 6px 6px !important; }
@@ -233,9 +231,9 @@ body.in-party .results .againbox, body.in-party .results .paid { display: none !
 
 /* the host: Puff the Petalpuff speaks the news in a bubble, and explains the rules at the start */
 .tt-host { display: flex; align-items: center; gap: 8px; max-width: 100%; }
-.tt-host .hp { flex: none; width: 54px; height: 54px; border-radius: 50%; background: #fff6e2; border: 3px solid var(--ink); box-shadow: 0 3px 0 #23401c55; display: grid; place-items: center; overflow: hidden; }
+.tt-host .hp { flex: none; width: 46px; height: 46px; border-radius: 50%; background: #fff6e2; border: 3px solid var(--ink); box-shadow: 0 3px 0 #23401c55; display: grid; place-items: center; overflow: hidden; }
 .tt-hpi { display: block; }
-.tt-host .hp .tt-hpi { width: 50px; height: 50px; }
+.tt-host .hp .tt-hpi { width: 42px; height: 42px; }
 .tt-host.talk .hp { animation: tthop .45s cubic-bezier(.3, 1.6, .5, 1); }
 @keyframes tthop { 30% { transform: translateY(-6px) rotate(-6deg); } }
 .tt-host .banner { position: relative; text-align: left; min-width: 0; }
@@ -342,14 +340,17 @@ body.night .tt-idots i.on { background: var(--lantern); }
 /* readability pass (Kuba 2026-11-27, lessons from Mario Party): a turn band you can't miss, a step counter over the
    walker, place badges, and the standings under every minigame's results */
 .tt-splash { position: absolute; left: 0; right: 0; top: 40%; height: 0; pointer-events: none; z-index: 4; }
-.tt-splash .in { position: absolute; left: 50%; top: 0; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 14px; padding: 10px 40px 10px 14px;
-  background: linear-gradient(90deg, transparent, var(--pc) 12%, var(--pc) 88%, transparent); color: #fff; min-width: min(560px, 92vw); justify-content: center; box-sizing: border-box; opacity: 0; }
-.tt-splash .in b { display: block; font: 700 clamp(28px, 4vw, 42px)/1 var(--fd); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 0 4px 0 var(--ink); white-space: nowrap; }
-.tt-splash .in small { display: inline-block; margin-top: 6px; font: 600 14px/1 var(--fd); background: var(--ink); color: var(--cream); border-radius: 999px; padding: 4px 12px; white-space: nowrap; }
-.tt-splash .in .avatar { border: 3px solid var(--ink); border-radius: 50%; background-color: #fff; flex: none; }
-.tt-splash.show .in { animation: ttsplash 1.5s cubic-bezier(.3, 1.1, .4, 1) both; }
-@keyframes ttsplash { 0% { opacity: 0; transform: translate(-90%, -50%); } 16%, 80% { opacity: 1; transform: translate(-50%, -50%); } 100% { opacity: 0; transform: translate(-10%, -50%); } }
-@media (prefers-reduced-motion: reduce) { @keyframes ttsplash { 0%, 100% { opacity: 0; transform: translate(-50%, -50%); } 15%, 80% { opacity: 1; transform: translate(-50%, -50%); } } }
+/* the turn card wears the site's sticker look: paper, thick ink edge, drop shadow; the player's colour is the ring and the stripe */
+.tt-splash .in { position: absolute; left: 50%; top: 0; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 18px; padding: 14px 34px 14px 16px; overflow: hidden;
+  background: var(--paper); color: var(--on-paper); border: 3.5px solid var(--ink); border-radius: 24px; box-shadow: 0 6px 0 var(--ink); min-width: min(520px, calc(100vw / var(--vz, 1) - 32px)); box-sizing: border-box; opacity: 0; }
+.tt-splash .in::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 12px; background: var(--pc); border-right: 3px solid var(--ink); }
+.tt-splash .in > * { position: relative; }
+.tt-splash .in b { display: block; font: 700 clamp(28px, 3.4vw, 40px)/1.05 var(--fd); color: var(--on-paper); white-space: nowrap; }
+.tt-splash .in small { display: inline-block; margin-top: 8px; font: 600 14px/1 var(--fd); background: var(--ink); color: var(--cream); border-radius: 999px; padding: 5px 12px; white-space: nowrap; }
+.tt-splash .in .avatar { margin-left: 8px; border: 3px solid var(--ink); border-radius: 50%; background-color: #fff; flex: none; box-shadow: 0 0 0 4px var(--pc); }
+.tt-splash.show .in { animation: ttsplash 2.4s cubic-bezier(.3, 1.4, .5, 1) both; }
+@keyframes ttsplash { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.6); } 10%, 88% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -58%) scale(.96); } }
+@media (prefers-reduced-motion: reduce) { @keyframes ttsplash { 0%, 100% { opacity: 0; transform: translate(-50%, -50%); } 10%, 88% { opacity: 1; transform: translate(-50%, -50%); } } }
 .tt-stp { display: inline-grid; place-items: center; min-width: 34px; height: 34px; border-radius: 50%; background: var(--lantern); color: var(--ink); border: 3px solid var(--ink); font: 700 20px/1 var(--fd); box-shadow: 0 3px 0 var(--ink); }
 .tt-tag .bub > span.tt-stp { padding: 0; border-radius: 50%; background: var(--lantern); color: var(--ink); font-size: 20px; animation-duration: .2s; }
 .tt-rk { flex: none; display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; font: 700 12px/1 var(--fd); background: var(--card); color: var(--on-paper); border: 1.5px solid var(--card-edge); }
@@ -365,3 +366,18 @@ body.night .tt-idots i.on { background: var(--lantern); }
 .tt .btn.tt-opt.r1 .ic { background: #ffc93c; border-radius: 10px; box-shadow: inset 0 0 0 2.5px var(--ink); }
 .tt.lineup .tt-side .tt-rk { display: none; } /* everyone is 1st before the first turn; the roll chips need the room */
 .tt.lineup .tt-side .tt-sp, .tt.lineup .tt-side .tt-tr { display: none; }
+
+/* Kuba 2026-11-27: the top middle was too busy. On desktop Tux's news sits in the bottom-left corner (phones keep it
+   under the player strip). The cheer question sits in the middle of the screen and says what happens next. */
+@media (min-width: 761px) {
+  .tt-news { top: auto; left: max(16px, env(safe-area-inset-left)); bottom: max(16px, env(safe-area-inset-bottom)); transform: none; align-items: flex-start;
+    max-width: min(460px, calc(50vw / var(--vz, 1) - 250px)); min-width: 260px; }
+  .tt-news .banner { font-size: 16px; }
+}
+@media (max-width: 760px) { .tt-log { display: none; } }
+.tt-dock:has(.tt-cheerq) { bottom: auto; top: 50%; transform: translate(-50%, -50%); width: min(620px, calc(100vw / var(--vz, 1) - 16px)); }
+.tt-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; width: 100%; }
+.tt-steps li { display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center; background: var(--card); border: 2px solid var(--card-edge); border-radius: 14px; padding: 8px 8px 9px; font: 600 14px/1.25 var(--fd); color: var(--on-paper); }
+.tt-steps li i { font-style: normal; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--lantern); color: var(--ink); border: 2.5px solid var(--ink); font: 700 14px/1 var(--fd); }
+.tt-note { margin: 0; font: 500 13px/1.3 var(--fb, inherit); color: var(--soft-tx); text-align: center; max-width: 520px; }
+@media (max-width: 760px) { .tt-steps li { font-size: 12.5px; padding: 6px 5px 7px; } .tt-dock:has(.tt-cheerq) { top: auto; bottom: max(12px, env(safe-area-inset-bottom)); transform: translateX(-50%); } }

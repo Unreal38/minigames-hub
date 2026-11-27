@@ -229,7 +229,7 @@ export function mount(app, ctx) {
     setHtml($('tt-side'), rows); petPics($('tt-side')); pbRows($('tt-side'));
   }
 
-  // ----- messages: the newest on top until the next one; the last two under it, fading -----
+  // ----- messages, bottom left on desktop (the top middle was too busy): the newest in Tux's bubble, the last two under it, fading -----
   function say(html) {
     if (LOG[0] === html) return;
     LOG.unshift(html); LOG.length = Math.min(LOG.length, 3);
@@ -251,7 +251,7 @@ export function mount(app, ctx) {
     el.style.setProperty('--pc', p.color);
     el.innerHTML = `<div class="in">${avatarHtml(p.color, p.av, 54, frameCls(p.fl))}<div><b>${isMe(s) ? L('Your turn!', 'Twoja kolej!') : L(`${nm(s)}'s turn`, `Kolej: ${nm(s)}`)}</b><small>${L(`Round ${S.round} of ${S.rounds}`, `Runda ${S.round} z ${S.rounds}`)} · ${ordW(placesOf()[s])} ${L('place', 'miejsce')}</small></div></div>`;
     el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
-    clearTimeout(splashT); splashT = setTimeout(() => el.classList.remove('show'), 1500);
+    clearTimeout(splashT); splashT = setTimeout(() => el.classList.remove('show'), 2400);
   }
   // the steps left, counting down over the walker's head stone by stone
   const stepsLeft = new Map();
@@ -281,7 +281,8 @@ export function mount(app, ctx) {
     const el = $('tt-dock');
     if (!S || S.ph !== 'play') { setHtml(el, ''); return; }
     let html = '';
-    const t = timeLeft(), clock = t >= 0 && S.timer ? `<span class="tt-clock${t <= 5 ? ' late' : ''}">${t}s</span>` : '';
+    // the clock is filled in after the redraw, so a time tick never rebuilds the cards under it (no blink)
+    const t = timeLeft(), clock = t >= 0 && S.timer ? '<span class="tt-clock"></span>' : '';
     if (S.stage === 'intro') html = introHtml();
     else if (S.stage === 'cheer') html = cheerHtml(clock);
     else if (myPend() && busyLeft() > 0) html = `<div class="tt-wait"><span>${L('Wait for it…', 'Chwileczkę…')}</span></div>`;
@@ -297,6 +298,7 @@ export function mount(app, ctx) {
     if (html && kind !== el._kind) { el.classList.remove('swap'); void el.offsetWidth; el.classList.add('swap'); }
     el._kind = kind;
     setHtml(el, html); petPics(el);
+    const ck = el.querySelector('.tt-clock'); if (ck) { const tx = t + 's'; if (ck.textContent !== tx) ck.textContent = tx; ck.classList.toggle('late', t <= 5); }
     layout();
   }
   const btn = (a, label, sub = '', attrs = '', cls = '') => `<button type="button" class="btn ${cls}" data-a="${a}" ${attrs}><span class="l">${label}</span>${sub ? `<small>${sub}</small>` : ''}</button>`;
@@ -357,9 +359,12 @@ export function mount(app, ctx) {
   function cheerHtml(clock) {
     if (!S.cheer || S.cheer.done || me()?.bot) return `<div class="tt-wait"><span>${L('Friends are picking who cheers…', 'Przyjaciele wybierają, kto kibicuje…')}</span>${clock}</div>`;
     const p = S.pl[S.me], can = p.herd.map((f, k) => (f.cheer ? k : -1)).filter(k => k >= 0);
-    return `<div class="tt-q"><b>${L('Who cheers you on?', 'Kto ci kibicuje?')}</b>${clock}<span>${L('A cheering friend moves you up one place in the next minigame if you finish behind someone. Each friend cheers once.', 'Kibicujący przyjaciel przesuwa cię o jedno miejsce w górę w następnej minigrze, jeśli skończysz za kimś. Każdy kibicuje raz.')}</span></div>
+    const step = (n, en, pl) => `<li><i>${n}</i><span>${L(en, pl)}</span></li>`;
+    return `<div class="tt-q tt-cheerq"><b>${L('Minigame next! Who cheers you on?', 'Za chwilę minigra! Kto ci kibicuje?')}</b>${clock}</div>
+      <ol class="tt-steps">${step(1, 'Pick a friend from your herd', 'Wybierz przyjaciela ze stada')}${step(2, 'Everyone plays the minigame', 'Wszyscy grają w minigrę')}${step(3, 'Finish behind someone? Your friend lifts you one place up', 'Skończysz za kimś? Przyjaciel podnosi cię o miejsce wyżej')}</ol>
       <div class="tt-acts">${can.map(k => opt('cheer', pet(p.herd[k], 34), esc(p.herd[k].name || petName(p.herd[k].sp)), EL_NAME[p.herd[k].el], `data-i="${k}"`)).join('')}</div>
-      <div class="tt-acts">${btn('cheer', L('Save them for later', 'Zachowaj na później'), '', 'data-i="-1"', 'ghost')}</div>`;
+      <p class="tt-note">${L('A friend who lifts you is used up until a Hot Spring. If they don\'t need to help, they stay ready.', 'Przyjaciel, który cię podniesie, odpoczywa do gorącego źródła. Jeśli nie musi pomagać, zostaje gotowy.')}</p>
+      <div class="tt-acts">${btn('cheer', L('No cheering this time', 'Tym razem bez kibica'), '', 'data-i="-1"', 'ghost')}</div>`;
   }
   function petsAhead(j) { let n = 0, at = j; const seen = new Set(); for (let k = 0; k < 6; k++) { for (const w of S.wild) if (!seen.has(w.id) && w.pos === at) { seen.add(w.id); n++; } at = NODES[at].next[0]; } return n; }
 
@@ -404,7 +409,7 @@ export function mount(app, ctx) {
   // the standings so far, under each minigame's results (Mario Party shows them between turns): place, points, treats
   function standingsHtml() {
     const plc = placesOf(), pts = showPts(S.pl), order = S.seats.map((_, i) => i).sort((a, b) => plc[a] - plc[b]);
-    return `<div class="tt-stand"><b>${L(`Standings after round ${S.round} of ${S.rounds}`, `Stan po rundzie ${S.round} z ${S.rounds}`)}</b>${order.map(i => `<div class="r${isMe(i) ? ' mine' : ''}"><span class="tt-rk p${plc[i]}">${plc[i]}</span>${avatarHtml(S.seats[i].color, S.seats[i].av, 24)}<span class="nm">${nm(i)}</span><span class="tt-sp">★${pts[i]}</span><span class="tt-tr">${I.treat}${S.pl[i].treats}</span></div>`).join('')}</div>`;
+    return `<div class="tt-stand"><b>${L(`Standings after round ${S.round} of ${S.rounds}`, `Stan po rundzie ${S.round} z ${S.rounds}`)}</b>${order.map(i => `<div class="${pbRowCls(S.seats[i].fl)} profrow r${isMe(i) ? ' mine' : ''}"><span class="tt-rk p${plc[i]}">${plc[i]}</span>${avatarHtml(S.seats[i].color, S.seats[i].av, 24, frameCls(S.seats[i].fl))}<span class="nm"><b>${nameHtml(S.seats[i].name, S.seats[i].fl)}</b></span><span class="tt-sp">★${pts[i]}</span><span class="tt-tr">${I.treat}${S.pl[i].treats}</span>${rowBg(S.seats[i].fl)}</div>`).join('')}</div>`;
   }
   // ----- the big overlays: the minigame wheel, minigame results, the Pet Show (the intro is the 3D line-up) -----
   function renderOv() {
@@ -418,19 +423,19 @@ export function mount(app, ctx) {
     } else if (S.stage === 'minires' && S.miniRes) {
       const R = S.miniRes; key += R.game;
       html = `<div class="tt-card"><h2>${esc(gameName(R.game))}</h2><ol class="tt-mres">${R.order.map((i, k) => { const ch = R.cheered.find(c => c.s === i);
-        return `<li style="animation-delay:${k * 120}ms"><i class="pos">${k + 1}</i>${avatarHtml(S.seats[i].color, S.seats[i].av, 32)}<b>${nm(i)}</b>${ch ? `<span class="tt-cheer">${pet({ sp: ch.sp }, 22)}${L('cheered up a place', 'awans dzięki kibicowi')}</span>` : ''}<strong>+${R.pay[k]} ${I.treat}</strong></li>`; }).join('')}</ol>
+        return `<li class="${pbRowCls(S.seats[i].fl)} profrow" style="animation-delay:${k * 120}ms"><i class="pos">${k + 1}</i>${avatarHtml(S.seats[i].color, S.seats[i].av, 32, frameCls(S.seats[i].fl))}<b>${nameHtml(S.seats[i].name, S.seats[i].fl)}</b>${ch ? `<span class="tt-cheer">${pet({ sp: ch.sp }, 22)}${L('cheered up a place', 'awans dzięki kibicowi')}</span>` : ''}<strong>+${R.pay[k]} ${I.treat}</strong>${rowBg(S.seats[i].fl)}</li>`; }).join('')}</ol>
         ${standingsHtml()}
         ${R.pact ? `<p class="tt-sub">${L(`Buddy pact bonus: ${nm(R.pact[0])} and ${nm(R.pact[1])} get +3 each`, `Premia paktu: ${nm(R.pact[0])} i ${nm(R.pact[1])} dostają po +3`)}</p>` : ''}</div>`;
     } else if (S.stage === 'show' && S.show) {
       const { rib, pts } = S.show, order = S.seats.map((_, i) => i).sort((a, b) => pts[b] - pts[a]);
       html = `<div class="tt-card wide"><h2>${L('The Pet Show', 'Pokaz zwierzaków')}</h2><p class="tt-sub">${L('A rosette for every friend in your herd, and 2 points for every ribbon', 'Rozeta za każdego przyjaciela w stadzie i 2 punkty za każdą wstęgę')}</p>
         <div class="tt-ribs">${Object.entries(RIBBONS).map(([k, n], j) => `<div class="tt-rib" style="animation-delay:${300 + j * 450}ms"><span class="rib">${esc(n)}</span><span>${rib[k].length ? rib[k].map(nm).join(', ') : L('nobody', 'nikt')}</span></div>`).join('')}</div>
-        <ol class="tt-mres">${order.map(i => `<li><i class="pos">${ptsW(pts[i])}</i>${avatarHtml(S.seats[i].color, S.seats[i].av, 32)}<b>${nm(i)}</b><span class="tt-herd">${S.pl[i].herd.map(f => pet(f, 24)).join('')}</span></li>`).join('')}</ol></div>`;
+        <ol class="tt-mres">${order.map(i => `<li class="${pbRowCls(S.seats[i].fl)} profrow"><i class="pos">${ptsW(pts[i])}</i>${avatarHtml(S.seats[i].color, S.seats[i].av, 32, frameCls(S.seats[i].fl))}<b>${nameHtml(S.seats[i].name, S.seats[i].fl)}</b><span class="tt-herd">${S.pl[i].herd.map(f => pet(f, 24)).join('')}</span>${rowBg(S.seats[i].fl)}</li>`).join('')}</ol></div>`;
     } else { ovHide(el); return; }
     if (key !== ovKey) {
       // a new card: the old one (if any) slides away first, then the new one rises in over a soft dimmed backdrop
       const swap = ovKey && !el.hidden; ovKey = key; clearTimeout(ovTimer);
-      const show = () => { if (destroyed || ovKey !== key) return; el.innerHTML = html; petPics(el); el.classList.remove('out'); el.hidden = false; void el.offsetWidth; el.classList.add('in'); if (S.stage === 'wheel') spinWheel(); };
+      const show = () => { if (destroyed || ovKey !== key) return; el.innerHTML = html; petPics(el); pbRows(el); el.classList.remove('out'); el.hidden = false; void el.offsetWidth; el.classList.add('in'); if (S.stage === 'wheel') spinWheel(); };
       if (swap) { el.classList.add('out'); ovTimer = setTimeout(show, 260); } else show();
     }
   }
