@@ -966,3 +966,16 @@ body.night .pf .mood.happy { background: #4a2240; color: #ffd0e0; }
 .pf .pfgfloat .gcost { display: flex; align-items: center; gap: 4px; font-family: var(--fd); font-weight: 700; font-size: 15px; white-space: nowrap; }
 .pf .pfgfloat .gcost .mat { gap: 2px; } .pf .pfgfloat .gcost .mat small { display: none; } .pf .pfgfloat .gcost .mi { width: 16px; height: 16px; }
 .pf .pfgfloat .gbad { pointer-events: none; background: #c13a26; color: #fff; font-family: var(--fd); font-weight: 700; font-size: 13px; border-radius: 999px; padding: 2px 10px; white-space: nowrap; }
+.pf .build .bhand { flex-direction: column; align-items: stretch; gap: 4px; }
+.pf .build .bhrow { display: flex; align-items: center; gap: 8px; }
+.pf .build .bdesc { margin: 0; font-size: 14px; line-height: 1.35; } .pf .build .bdesc .hint { font-size: 13px; }
+.pf .build .bwhy { margin: 0; font-size: 13px; font-weight: 700; color: #c13a26; } body.night .pf .build .bwhy { color: #ff9a8a; }
+@media (min-width: 641px) {
+  .pf .build.hasg .bhand { display: flex; background: var(--pf-chip, var(--card)); border: 2px solid var(--ink); border-radius: 14px; padding: 8px 10px; }
+  .pf .build .bhlist { display: none; }
+}
+@media (max-width: 640px) {
+  .pf .build .bdesc { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; font-size: 13px; }
+  .pf .build:not(.held) .bdesc, .pf .build:not(.held) .bwhy { display: none; }
+}
+@media (min-width: 641px) { .pf .build .bhrow { flex-wrap: wrap; row-gap: 2px; } .pf .build .bhn { flex: 1 1 100%; } .pf .build .bhn b { white-space: normal; } }

@@ -425,10 +425,15 @@ export function mount(app, ctx) {
       : most && have >= most ? (type === 'hut' ? L(`You already have ${have}, the most a farm can hold. For more pets, build a Pet Lodge${F.house < 4 ? ' (it needs a level 4 farmhouse)' : ''}: it stores up to 300.`, `Masz już ${have}, więcej farma nie pomieści. Żeby mieć więcej zwierzaków, zbuduj Schronisko${F.house < 4 ? ' (wymaga domu na poziomie 4)' : ''}: pomieści do 300.`) : L(`You already have ${most === 1 ? 'one, and one is the most a farm can hold' : `${have}, the most a farm can hold`}.`, `Masz już ${have}, a więcej farma nie pomieści.`))
       : !canAfford(F.inv, it.cost) ? (it.stamp ? L(`You have ${F.inv.stamps || 0} stamps. Deliver island orders at the Order Board to earn more.`, `Masz znaczki: ${F.inv.stamps || 0}. Dostarczaj zamówienia z wysp na Tablicy zamówień, żeby zdobyć więcej.`) : L('You do not have enough materials yet.', 'Nie masz jeszcze dość materiałów.')) : '';
   }
-  // A card was tapped: the piece goes in hand as a free preview. Nothing is paid until the ✓ button.
-  function takeItem(type) {
-    const why = whyNot(type); if (why) { ctx.toast(why, true); return; }
-    sfx.click(); listOpen = false; scene?.ghostCancel(); scene?.ghostNew(type);
+  // A card was tapped: the piece goes in hand as a free preview, even one that cannot be bought yet (to see it on the
+  // farm and read about it). Nothing is paid until the green button, which stays grey while whyNot has a reason.
+  function takeItem(type) { sfx.click(); listOpen = false; scene?.ghostCancel(); scene?.ghostNew(type); }
+  // What the details box says about a piece: size, walking, how many, improvements.
+  const pn = n => String(n).replace('.', ','); // Polish decimal comma
+  function itemFacts(type) {
+    const it = ITEMS[type], have = countOf(F, type), most = maxOf(F, type), up = UPGRADES[type];
+    const size = it.w === it.h ? (it.w < 1 ? L('Half a tile', 'Pół kratki') : it.w === 1 ? L('One tile', 'Jedna kratka') : L(`${it.w} by ${it.h} tiles`, `${pn(it.w)} na ${pn(it.h)} kratki`)) : L(`${it.w} by ${it.h} tiles`, `${pn(it.w)} na ${pn(it.h)} kratki`);
+    return `${size}${it.walk ? L(' · pets can walk over it', ' · zwierzaki mogą po tym chodzić') : ''}${most ? L(` · you have ${have} of ${most}`, ` · masz ${have} z ${most}`) : have ? L(` · you have ${have}`, ` · masz ${have}`) : ''}${up ? L(` · can be improved to level ${lvMax(type)}`, ` · można ulepszyć do poziomu ${lvMax(type)}`) : ''}`;
   }
 
   // ---------- expeditions ----------
@@ -1132,16 +1137,18 @@ export function mount(app, ctx) {
     el.querySelector('.bname').textContent = q ? L('Found', 'Znalezione') : CATS().find(([k]) => k === tab)?.[1] || '';
     el.querySelector('.bfoldb').textContent = bfold ? L('Show list', 'Pokaż listę') : L('Hide', 'Schowaj');
     const it = held && ITEMS[g.type], gift = held && F.stash[g.type] > 0;
-    el.querySelector('.bhand').innerHTML = held ? `<span class="bhn">${thumb(g.type)}<b>${it.name}</b></span><span class="cost">${gift ? `<span class="mat">${L('Free from the stash', 'Za darmo ze schowka')}</span>` : costHtml(it.cost, F.inv)}</span>
-      <button type="button" class="btn sm w" data-a="blist">${listOpen ? L('Hide list', 'Schowaj listę') : L('Show list', 'Pokaż listę')}</button>` : '';
+    const gi = g && ITEMS[g.type], why = held ? whyNot(g.type) : '';
+    el.querySelector('.bhand').innerHTML = g ? `<div class="bhrow"><span class="bhn">${thumb(g.type)}<b>${gi.name}</b></span>${held ? `<span class="cost">${gift ? `<span class="mat">${L('Free from the stash', 'Za darmo ze schowka')}</span>` : costHtml(gi.cost, F.inv)}</span>` : ''}
+      <button type="button" class="btn sm w bhlist" data-a="blist">${listOpen ? L('Hide list', 'Schowaj listę') : L('Show list', 'Pokaż listę')}</button></div>
+      <p class="bdesc">${gi.desc} <span class="hint">${itemFacts(g.type)}</span></p>${why ? `<p class="bwhy">${why}</p>` : ''}` : '';
     const box = el.querySelector('.items'), keep = box.scrollLeft, keepY = box.scrollTop;
     box.innerHTML = cards + land || `<p class="hint">${L('Nothing by that name.', 'Nic takiego nie ma.')}</p>`;
     box.scrollLeft = keep; box.scrollTop = keepY;
-    el.classList.toggle('held', !!held && !listOpen); el.classList.toggle('hasg', !!held); el.classList.toggle('fold', bfold);
+    el.classList.toggle('held', !!g && !listOpen); el.classList.toggle('hasg', !!g); el.classList.toggle('fold', bfold);
   }
   function paintGhost(g) {
     if (!g) { $('pf-gfloat').hidden = true; floatAt = ''; paintBuild(); return; }
-    const it = ITEMS[g.type], sell = g.id && !it.fixed, gift = !g.id && F.stash[g.type] > 0;
+    const it = ITEMS[g.type], sell = g.id && !it.fixed, gift = !g.id && F.stash[g.type] > 0, cant = !g.id && !!whyNot(g.type); // cant: only a preview
     // the round buttons float under the piece. The green one says what it will do: pay and place (with the price),
     // place a gift from the stash for free, or move a piece that is already on the farm.
     const okIcon = g.same ? I.ok : g.id ? I.move : gift ? I.gift : I.buy;
@@ -1151,8 +1158,8 @@ export function mount(app, ctx) {
       : sell ? `<button type="button" class="round sell${back ? '' : ' wide'}" data-a="away" title="${back ? L('Put it in the stash', 'Odłóż do schowka') : L(`Sell (${costText(it.cost)} back)`, `Sprzedaj (zwrot: ${costText(it.cost)})`)}" aria-label="${back ? L('Put it in the stash', 'Odłóż do schowka') : L('Sell', 'Sprzedaj')}">${back ? I.gift : I.bin}${back ? '' : `<span class="gcost">+${costHtml(it.cost)}</span>`}</button>` : '';
     const fl = $('pf-gfloat');
     fl.innerHTML = `<div class="gbtns"><button type="button" class="round" data-a="rot" title="${L('Turn (R)', 'Obróć (R)')}" aria-label="${L('Turn', 'Obróć')}">${I.turn}</button>${away}
-      <button type="button" class="round okb${g.id ? '' : ' wide'}" data-a="ok" ${g.ok || g.same ? '' : 'disabled'} title="${okWhat} (Enter)" aria-label="${okWhat}">${okIcon}${g.id ? '' : `<span class="gcost">${gift ? L('Free', 'Za darmo') : costHtml(it.cost, F.inv)}</span>`}</button></div>
-      ${g.ok || g.same ? '' : `<span class="gbad">${L('It does not fit there.', 'Tu się nie zmieści.')}</span>`}`;
+      <button type="button" class="round okb${g.id ? '' : ' wide'}" data-a="ok" ${(g.ok || g.same) && !cant ? '' : 'disabled'} title="${okWhat} (Enter)" aria-label="${okWhat}">${okIcon}${g.id ? '' : `<span class="gcost">${gift ? L('Free', 'Za darmo') : costHtml(it.cost, F.inv)}</span>`}</button></div>
+      ${cant ? `<span class="gbad">${L('Just a preview: you cannot buy it yet', 'Tylko podgląd: jeszcze nie możesz tego kupić')}</span>` : g.ok || g.same ? '' : `<span class="gbad">${L('It does not fit there.', 'Tu się nie zmieści.')}</span>`}`;
     fl.classList.toggle('bad', !g.ok);
     floatAt = '';
     paintBuild();
@@ -1280,6 +1287,7 @@ export function mount(app, ctx) {
   // ---------- actions ----------
   function confirmGhost() {
     const g = scene?.ghost(); if (g?.same) { scene.ghostCancel(); return; } if (!g?.ok) return; // not moved: just put it back down
+    if (!g.id) { const why = whyNot(g.type); if (why) { ctx.toast(why, true); return; } } // only a preview: cannot be bought yet
     lastType = g.id ? null : g.type; lastSpot = [g.x, g.y, g.r];
     ctx.send(g.id ? { t: 'move', id: g.id, x: g.x, y: g.y, r: g.r } : { t: 'place', type: g.type, x: g.x, y: g.y, r: g.r });
     scene.ghostCancel();
