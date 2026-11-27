@@ -67,6 +67,15 @@ function streaks(n, u) {
 
 const BOW = ['#e8615a', '#ffb547', '#ffe066', '#7fd08a', '#6fb7e8', '#b79cf0']; // Pet Farm's rainbow
 const _f = new THREE.Vector3();
+const BOW_R = Math.tan(24 * Math.PI / 180); // the arch is about 48 degrees across, its feet on the horizon
+
+// One band of the arch: a little more than a half circle, its feet fading into the haze below the horizon.
+function bowBand(R) {
+  const g = new THREE.TorusGeometry(R, 1.15, 4, 48, Math.PI + .5); g.rotateZ(-.25);
+  const p = g.attributes.position, a = new Float32Array(p.count * 4);
+  for (let i = 0; i < p.count; i++) { const k = Math.min(1, Math.max(0, (p.getY(i) / R + .08) / .42)); a.set([1, 1, 1, k * k * (3 - 2 * k)], i * 4); }
+  g.setAttribute('color', new THREE.BufferAttribute(a, 4)); return g;
+}
 
 export function weatherLayer(scene, { size = 0 } = {}) {
   const root = new THREE.Group(); root.name = 'weather'; scene.add(root);
@@ -76,11 +85,12 @@ export function weatherLayer(scene, { size = 0 } = {}) {
   const W = { ...common(), uLen: { value: 2.4 }, uFall: { value: .25 }, uDrift: { value: 9 }, uWave: { value: .25 }, uCol: { value: new THREE.Color('#ffffff') } };
   const rain = streaks(Math.round(1300 * share), R), wind = streaks(Math.round(70 * share), W);
   const bow = new THREE.Group();
-  BOW.forEach((c, i) => bow.add(new THREE.Mesh(new THREE.TorusGeometry(58 - i * 2.2, 1.15, 4, 40, Math.PI), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0, fog: false, depthWrite: false }))));
+  BOW.forEach((c, i) => bow.add(new THREE.Mesh(bowBand(58 - i * 2.2), new THREE.MeshBasicMaterial({ color: c, vertexColors: true, transparent: true, opacity: 0, fog: false, depthWrite: false }))));
   bow.children.forEach(m => { m.renderOrder = -7; m.frustumCulled = false; });
   root.add(rain, wind, bow);
   rain.visible = wind.visible = bow.visible = false;
 
+  const bowYaw = new WeakMap(); // camera -> the fixed compass direction of the rainbow
   let want = { rain: 0, wind: 0, bow: 0 }, now = { rain: 0, wind: 0, bow: 0 }, S = size, D = size / 1.3, lastT = -1, nextLook = 0;
   const ray = new THREE.Raycaster(), mid = new THREE.Vector2();
   const solid = o => o.isMesh && o.visible && !o.userData.sky && !o.userData.cloud && !o.material?.transparent;
@@ -110,11 +120,15 @@ export function weatherLayer(scene, { size = 0 } = {}) {
     R.uA.value = now.rain * .5; W.uA.value = now.wind * (.34 + Math.sin(T * .7) * .08 + Math.sin(T * 2.3) * .04);
     rain.visible = now.rain > .01 && !reduced; wind.visible = now.wind > .01 && !reduced;
     bow.visible = now.bow > .01;
-    if (bow.visible) { // always arching over the far side of the view, like Pet Farm's
-      _f.y = 0; if (_f.lengthSq() < 1e-4) _f.set(0, 0, -1); _f.normalize();
-      const far = Math.min(D * 4, camera.far * .8), r = far * .58; // about 60 degrees wide, its top a little above the horizon
-      bow.position.copy(camera.position).addScaledVector(_f, far); bow.position.y = camera.position.y + far * .21 - r;
-      bow.rotation.set(0, Math.atan2(_f.x, _f.z), 0); bow.scale.setScalar(r / 58); bow.updateMatrixWorld(true);
+    if (bow.visible) { // part of the sky: fixed in the world like the moon, only carried along as the camera moves
+      let yaw = bowYaw.get(camera);
+      if (yaw === undefined) { // it settles over the far side of whatever this camera first looks at, then never turns
+        _f.y = 0; if (_f.lengthSq() < 1e-4) _f.set(0, 0, -1); _f.normalize();
+        yaw = Math.atan2(_f.x, _f.z); bowYaw.set(camera, yaw);
+      }
+      const far = Math.min(240, camera.far * .85), r = far * BOW_R; // out past the scenery, always the same size in the sky
+      bow.position.set(camera.position.x + Math.sin(yaw) * far, camera.position.y - far * .03, camera.position.z + Math.cos(yaw) * far);
+      bow.rotation.set(0, yaw, 0); bow.scale.setScalar(r / 58); bow.updateMatrixWorld(true);
       for (const m of bow.children) m.material.opacity = now.bow * want.bowA;
     }
   }
