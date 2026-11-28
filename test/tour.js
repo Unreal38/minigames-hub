@@ -149,10 +149,33 @@ const posts = await boss.hook('posts');
 if (posts.map(x => x.kind).join() !== 'open,checkin,live,done') fail('posts ' + posts.map(x => x.kind));
 if (!posts[0].content.startsWith('@here 🏆 Zapisy otwarte: Puchar Kółek') || posts[3].content.includes('@here') || !posts[3].content.includes('Ana')) fail('post text ' + JSON.stringify(posts.map(x => x.content)));
 
+// Discord alerts for any community: accounts add their own channel webhooks (a test post goes out first), filtered
+// by game, in their own language; only the owner or a host removes one; a webhook deleted in Discord drops out.
+const W = n => `https://discord.com/api/webhooks/${n}/abcdefghijklmnopqrstuvwxyz_${n}`;
+if (!(await guest.tour({ op: 'sub_add', hook: W(111111) })).err) fail('a guest added a channel');
+if (!(await ana.tour({ op: 'sub_add', hook: 'https://evil.example/api/webhooks/123456/abcdefghijklmnopqrstuvwxyz' })).err) fail('a non-Discord channel was taken');
+const sa = await ana.tour({ op: 'sub_add', hook: W(222222), lang: 'en', ping: false, games: ['darts', 'nope'], label: 'Dart club <b>' });
+if (!sa.added || sa.subs.mine.length !== 1 || sa.subs.mine[0].games.join() !== 'darts' || sa.subs.mine[0].hook.includes('abcdefghij') || sa.subs.all !== null || sa.subs.mine[0].label.includes('<')) fail('Ana adds a darts channel ' + JSON.stringify(sa));
+if (!sa.subs.games.includes('chess') || sa.subs.games.includes('copy')) fail('the game chips are the cup games');
+if (!(await ana.tour({ op: 'sub_add', hook: W(222222) })).err) fail('the same channel twice');
+if (!(await bo.tour({ op: 'sub_add', hook: W('000099') })).err?.includes('doesn’t exist')) fail('a deleted webhook was taken');
+const sb = await bo.tour({ op: 'sub_add', hook: W(333333), lang: 'pl', ping: true });
+if (!sb.added) fail('Bo adds an every-game channel');
+let hello = (await boss.hook('posts')).filter(x => x.kind === 'hello');
+if (hello.length !== 3 || !hello[0].content.includes('This channel now gets') || !hello[0].embeds[0].description.includes('Darts')) fail('test posts ' + JSON.stringify(hello.map(x => x.content)));
+if ((await ana.tour({ op: 'sub_list' })).subs.mine.length !== 1) fail('Ana lists her channel');
+const all = (await boss.tour({ op: 'sub_list' })).subs.all;
+if (all?.length !== 2 || all[0].byName !== 'Ana') fail('a host sees every channel ' + JSON.stringify(all));
+if (!(await bo.tour({ op: 'sub_del', sid: sa.subs.mine[0].sid })).err) fail('Bo removed Ana’s channel');
+const sentBefore = (await boss.hook('posts')).length;
+
 // Heats: five players at tables of 3, top 2 go on. Round 1 has tables of 3 and 2; nobody comes, so seeds decide;
 // then a final table of 3, where two come: it starts with the two (the third is placed last) and their order counts.
 const h = (await boss.tour({ op: 'create', game: 'darts', fmt: 'heat', per: 3, adv: 2, name: { en: 'Dart Heats' }, start: Date.now() + 3600_000, prize: { c: [50, 20, 10], all: 0 } })).id;
 for (const p of [ana, bo, cy, dee, eli]) if ((await p.tour({ op: 'join', id: h })).err) fail('heat join ' + p.name);
+let open = (await boss.hook('posts')).slice(sentBefore).filter(x => x.kind === 'open');
+if (open.length !== 3 || !open.some(x => x.content === '🏆 Sign-ups are open: Dart Heats') || open.filter(x => x.content.startsWith('@here 🏆 Zapisy otwarte')).length !== 2) fail('the darts cup goes to all three channels ' + JSON.stringify(open.map(x => [x.to, x.content])));
+await boss.hook('kill', { sid: sb.subs.mine[0].sid }); // Bo's server deletes the webhook
 await until(() => guest.T(h)?.ents.length === 5, 'five in the heats');
 await boss.tour({ op: 'start', id: h }); // start now: everyone signed up plays
 await until(() => guest.T(h)?.st === 'live', 'heats start');
@@ -177,6 +200,10 @@ if (guest.T(h).top.join() !== [f3, f2, f1].map(p => p.me.pt).join()) fail('heat 
 // A host can set a knockout result, and can't replay a match once the next one has started; cancel ends it.
 const k = (await boss.tour({ op: 'create', game: 'chess', fmt: 'ko', bo: 3, name: { en: 'Chess Cup' }, start: Date.now() + 3600_000 })).id;
 for (const p of [ana, bo, cy, dee]) await p.tour({ op: 'join', id: k });
+open = (await boss.hook('posts')).filter(x => x.kind === 'open').slice(-2);
+if (open.some(x => x.to === sa.subs.mine[0].sid) || !open.some(x => x.to === 'host')) fail('a chess cup skips the darts channel ' + JSON.stringify(open.map(x => x.to)));
+const left = await boss.hook('subs');
+if (left.length !== 1 || left[0].by !== ana.me.pt || !(left[0].sent >= 1)) fail('the deleted webhook dropped out ' + JSON.stringify(left));
 await until(() => guest.T(k)?.ents.length === 4, 'four in the chess cup');
 await boss.tour({ op: 'start', id: k });
 await until(() => guest.T(k)?.st === 'live' && guest.T(k).rounds[0].every(m => m.st === 'call'), 'chess semis called');
@@ -194,8 +221,9 @@ srv.kill('SIGTERM'); await wait(700); await start();
 const back = await player('Kuba', boss.token).connect();
 await until(() => back.T(k)?.rounds[0][0].st === 'call' && back.T(k).rounds[0][0].code, 'the match is called again after a restart', 8000);
 if (back.T(id)?.st !== 'done') fail('the finished cup was kept');
+if ((await back.tour({ op: 'sub_list' })).subs.all?.length !== 1) fail('community channels kept after a restart');
 if (!(await back.tour({ op: 'cancel', id: k })).ok) fail('cancel');
 await until(() => back.T(k)?.st === 'off', 'cancelled');
 srv.kill();
-console.log('OK tour: hosts only, sign-ups and check-in, seeds and byes, real match at its own table, watchers, walkovers, prizes and the title count, Discord posts, heats, host results and replays, restart');
+console.log('OK tour: hosts only, sign-ups and check-in, seeds and byes, real match at its own table, watchers, walkovers, prizes and the title count, Discord posts, community Discord channels, heats, host results and replays, restart');
 process.exit(0);

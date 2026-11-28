@@ -10,6 +10,7 @@ const LSget = k => { try { return localStorage.getItem(k); } catch { return null
 const LSset = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
 const pick = x => (x ? (PL ? x.pl || x.en : x.en || x.pl) || '' : '');
 let d = null; // from app.js: send, modal, toast, sfx, me(), room(), avatarHtml, gameName(id), join(code), openPlayer(pt), srvText, setStrip(html), settingsHtml(game, opts, pill), onList()
+let al = null; // the Discord alerts window: { win, subs, lang, ping, all, sel: Set, busy, hook, label }
 let list = [], at = 0, sheet = null, sheetId = '', histSheet = null, hist = null, one = null, callWin = null, seenCalls = new Set(), adm = null;
 
 /** app.js hands over what this needs. */
@@ -59,7 +60,7 @@ const atTable = code => d.room()?.code === code;
 /** A {t:'tour'} message. */
 export function onTour(m) {
   if (m.list) { list = m.list; at = Date.now(); paintAll(); return; }
-  if (m.op === 'err') { d.sfx.bad(); return d.toast(esc(d.srvText(m.err)), true); }
+  if (m.op === 'err') { if (al && m.of === 'sub_add') { al.busy = false; paintAlerts(); } d.sfx.bad(); return d.toast(esc(d.srvText(m.err)), true); }
   if (m.op === 'prize') {
     const T = list.find(x => x.id === m.id), nm = T ? esc(pick(T.name)) : L('the tournament', 'turniej');
     d.sfx.win?.();
@@ -68,6 +69,12 @@ export function onTour(m) {
   }
   if (m.op === 'call') return paintAll(true);
   if (m.op === 'ok') {
+    if (m.subs) {
+      if (al) { al.subs = m.subs; if (m.of === 'sub_add') { al.busy = false; if (m.added) { al.hook = ''; al.label = ''; d.sfx.join(); d.toast(L('Connected! Look for the test message in your channel.', 'Połączono! Na kanale czeka wiadomość próbna.')); } } paintAlerts(); }
+      if (adm) { adm.subs = m.subs.all; paintAdmin(); }
+      if (m.of === 'sub_del') d.toast(L('Channel removed.', 'Kanał usunięty.'));
+      return;
+    }
     if (m.hist) { hist = m.hist; return paintHist(); }
     if (m.one) { one = m.one; return paintSheet(); }
     if (m.cfg) { if (adm) { adm.cfg = m.cfg; if (m.games) { adm.games = m.games; adm.defs = m.defs || {}; } paintAdmin(); } }
@@ -278,14 +285,14 @@ function paintSheet() {
     <h3>${T.st === 'signup' || T.st === 'checkin' ? L(`Signed up · ${T.ents.length}/${T.max}`, `Zapisani · ${T.ents.length}/${T.max}`) : L(`Players · ${ents.length}`, `Gracze · ${ents.length}`)}</h3>
     <div class="tp-ents">${ents.map((e, i) => `<span class="tp-ent${e.pt === myPt() ? ' me' : ''}">${T.seed.length ? `<i>${i + 1}</i>` : ''}${pill(T, e.pt)}</button>${T.st === 'checkin' ? (e.in ? '<small class="good">✓</small>' : '<small>…</small>') : ''}${admin && (T.st === 'signup' || T.st === 'checkin' || T.st === 'live') ? `<button type="button" class="tp-x" data-tour="kick" data-id="${T.id}" data-pt="${e.pt}" title="${L('Take out of the tournament', 'Wypisz z turnieju')}">×</button>` : ''}</span>`).join('') || `<p class="tp-empty">${L('Nobody yet. Be the first!', 'Jeszcze nikt się nie zapisał. Twoje miejsce czeka!')}</p>`}</div>
     ${log.length ? `<h3>${L('Changes', 'Zmiany')}</h3><ul class="tp-log">${log.map(x => `<li><time>${hm(x.at)}</time> ${esc(LOG(x, T))}</li>`).join('')}</ul>` : ''}
-    <div class="row tp-foot"><button type="button" class="btn w" data-tour="hist">${L('Past tournaments', 'Poprzednie turnieje')}</button><button type="button" class="btn" data-tour="close">${L('Done', 'Gotowe')}</button></div>`;
+    <div class="row tp-foot"><button type="button" class="btn w" data-tour="alerts">🔔 ${L('Discord alerts', 'Powiadomienia na Discordzie')}</button><button type="button" class="btn w" data-tour="hist">${L('Past tournaments', 'Poprzednie turnieje')}</button><button type="button" class="btn" data-tour="close">${L('Done', 'Gotowe')}</button></div>`;
   if (box.dataset.h !== html) { morph(box, html); box.dataset.h = html; }
 }
 // ---------- past tournaments ----------
 export function openHist() {
   histSheet?.close(); hist = null;
   d.send({ t: 'tour', op: 'hist' });
-  histSheet = d.modal(`<h2>🏆 ${L('Tournaments', 'Turnieje')}</h2><div class="thist"><p class="rknote">${L('Loading…', 'Wczytywanie…')}</p></div>`);
+  histSheet = d.modal(`<h2>🏆 ${L('Tournaments', 'Turnieje')}</h2><div class="row th-top"><button type="button" class="btn sm w" data-tour="alerts">🔔 ${L('Discord alerts for your community', 'Powiadomienia na Discordzie dla twojej społeczności')}</button></div><div class="thist"><p class="rknote">${L('Loading…', 'Wczytywanie…')}</p></div>`);
   histSheet.el.querySelector('.sheet').classList.add('listsheet');
   histSheet.onClose = () => { histSheet = null; };
   paintHist();
@@ -295,6 +302,75 @@ function paintHist() {
   const now = list.filter(T => T.st === 'signup' || T.st === 'checkin' || T.st === 'live');
   box.innerHTML = `${now.length ? `<h3>${L('Now', 'Teraz')}</h3>${now.map(T => `<button type="button" class="th-row" data-tour="open" data-id="${T.id}"><img src="/gamepics/${esc(T.game)}-s.jpg" alt=""><span><b>${esc(pick(T.name))}</b><small>${esc(d.gameName(T.game))} · ${STATE()[T.st]} · ${esc(when(T.start))}</small></span></button>`).join('')}` : ''}
     <h3>${L('Past', 'Poprzednie')}</h3>${!hist ? `<p class="rknote">${L('Loading…', 'Wczytywanie…')}</p>` : hist.length ? hist.map(T => `<button type="button" class="th-row" data-tour="open" data-id="${T.id}"><img src="/gamepics/${esc(T.game)}-s.jpg" alt=""><span><b>${esc(pick(T.name))}</b><small>${esc(d.gameName(T.game))} · ${esc(when(T.start))} · ${T.st === 'off' ? L('cancelled', 'odwołany') : `🏆 ${esc(T.top[0]?.name || '?')}`}</small></span></button>`).join('') : `<p class="rknote">${L('No tournaments yet.', 'Jeszcze nie było turniejów.')}</p>`}`;
+}
+
+// ---------- Discord alerts: any community adds its own channel ----------
+/** The window where anyone with an account connects a Discord channel (a webhook) to the tournament news. */
+export function openAlerts() {
+  al?.win.close();
+  al = { win: null, subs: null, lang: PL ? 'pl' : 'en', ping: true, all: true, sel: new Set(), busy: false, hook: '', label: '' };
+  al.win = d.modal(`<div class="talerts"><p class="rknote">${L('Loading…', 'Wczytywanie…')}</p></div>`);
+  al.win.el.querySelector('.sheet').classList.add('listsheet', 'alsheet');
+  al.win.onClose = () => { al = null; };
+  al.win.el.addEventListener('click', onAlClick);
+  al.win.el.addEventListener('input', e => { if (!al) return; if (e.target.id === 'al-hook') al.hook = e.target.value; if (e.target.id === 'al-label') al.label = e.target.value; });
+  al.win.el.addEventListener('submit', e => { e.preventDefault(); addAlert(); });
+  d.send({ t: 'tour', op: 'sub_list' });
+  paintAlerts();
+}
+const gamesLine = g => (g?.length ? g.map(id => d.gameName(id)).join(', ') : L('every game', 'wszystkie gry'));
+function paintAlerts() {
+  const box = al?.win.el.querySelector('.talerts'); if (!box) return;
+  const acct = !!d.me()?.user, S = al.subs, mine = S?.mine || [], full = S && mine.length >= S.max;
+  const seg = (k, v, t) => `<button type="button" data-al="${k}" data-v="${v}" aria-pressed="${String(al[k]) === String(v)}">${t}</button>`;
+  const games = (S?.games || []).slice().sort((a, b) => d.gameName(a).localeCompare(d.gameName(b), LOCALE));
+  const form = !acct ? `<div class="al-acct"><p>${L('Make a free account to connect a channel: it keeps your channels yours, so only you (and the hosts) can remove them.', 'Załóż darmowe konto, żeby połączyć kanał: dzięki temu kanał jest twój i tylko ty (oraz gospodarze) możesz go usunąć.')}</p><button type="button" class="btn" data-al="acct">${L('Make an account', 'Załóż konto')}</button></div>`
+    : full ? `<p class="nthint">${L(`You have ${S.max} channels, the most one account can add. Remove one to add another.`, `Masz ${S.max} kanały, czyli najwięcej na jedno konto. Usuń któryś, żeby dodać nowy.`)}</p>`
+    : `<form class="al-form" autocomplete="off">
+      <ol class="al-steps">
+        <li>${L('In Discord, open the channel’s settings (⚙️ next to its name) › <b>Integrations</b> › <b>Webhooks</b>.', 'Na Discordzie otwórz ustawienia kanału (⚙️ obok nazwy) › <b>Integracje</b> › <b>Webhooki</b>.')}</li>
+        <li>${L('<b>New Webhook</b> › <b>Copy Webhook URL</b>. You need the Manage Webhooks permission on that server.', '<b>Nowy webhook</b> › <b>Kopiuj URL webhooka</b>. Potrzebne jest uprawnienie Zarządzanie webhookami na tym serwerze.')}</li>
+        <li>${L('Paste the link here and pick what the channel should get.', 'Wklej link tutaj i wybierz, co ma trafiać na kanał.')}</li>
+      </ol>
+      <label class="al-lab">${L('Webhook link', 'Link webhooka')}<input class="field" id="al-hook" value="${esc(al.hook)}" placeholder="https://discord.com/api/webhooks/…" spellcheck="false" inputmode="url"></label>
+      <label class="al-lab">${L('Name for your list (optional)', 'Nazwa na twojej liście (opcjonalnie)')}<input class="field" id="al-label" maxlength="40" value="${esc(al.label)}" placeholder="${L('e.g. Friday chess club', 'np. Piątkowy klub szachowy')}"></label>
+      <div class="ta-opt"><b>${L('Which tournaments', 'Które turnieje')}</b><div class="pills">${seg('all', true, L('Every game', 'Wszystkie gry'))}${seg('all', false, L('Chosen games', 'Wybrane gry'))}</div></div>
+      ${al.all ? '' : `<div class="al-games">${games.map(id => `<button type="button" class="al-g" data-al="g" data-v="${id}" aria-pressed="${al.sel.has(id)}"><img src="/gamepics/${esc(id)}-s.jpg" alt="" loading="lazy"><span>${esc(d.gameName(id))}</span></button>`).join('')}</div>`}
+      <div class="al-two"><div class="ta-opt"><b>${L('Language of the posts', 'Język postów')}</b><div class="pills">${seg('lang', 'pl', 'Polski')}${seg('lang', 'en', 'English')}</div></div>
+      <div class="ta-opt"><b>${L('Ping @here', 'Oznaczaj @here')}</b><div class="pills">${seg('ping', true, L('On', 'Wł.'))}${seg('ping', false, L('Off', 'Wył.'))}</div></div></div>
+      <p class="nthint">${L('@here goes out only when sign-ups open, check-in starts and a cup starts. We send a test message first: the channel is added only if Discord takes it.', '@here idzie tylko przy otwarciu zapisów, potwierdzaniu obecności i starcie turnieju. Najpierw wysyłamy wiadomość próbną: kanał zostanie dodany tylko wtedy, gdy Discord ją przyjmie.')}</p>
+      <div class="row"><button type="submit" class="btn p"${al.busy ? ' disabled' : ''}>${al.busy ? L('Checking with Discord…', 'Sprawdzam z Discordem…') : L('Connect the channel', 'Połącz kanał')}</button></div></form>`;
+  const row = x => `<div class="al-row"><span class="al-ico" aria-hidden="true">#</span><div><b>${esc(x.label || L('Discord channel', 'Kanał na Discordzie'))}</b><small>${esc(gamesLine(x.games))} · ${x.lang === 'pl' ? 'PL' : 'EN'}${x.ping ? ' · @here' : ''} · ${L(`${x.sent} posts`, `postów: ${x.sent}`)}${x.byName ? ` · 👤 ${esc(x.byName)}` : ''}</small><code>${esc(x.hook)}</code></div><button type="button" class="btn sm w" data-al="del" data-v="${x.sid}">${L('Remove', 'Usuń')}</button></div>`;
+  const html = `<h2>🔔 ${L('Discord alerts', 'Powiadomienia na Discordzie')}</h2>
+    <p class="al-lead">${L('Run a Discord community? Get Zatoka Gier tournaments posted on your own channel: when sign-ups open, check-in starts, a cup starts and someone wins, with a link straight to it.', 'Masz społeczność na Discordzie? Turnieje Zatoki Gier mogą trafiać na twój kanał: gdy ruszą zapisy, zacznie się potwierdzanie obecności, wystartuje turniej i ktoś wygra, z linkiem prosto do niego.')}</p>
+    <div class="al-demo" aria-hidden="true"><img src="/icon-192.png" alt=""><div><b>Zatoka Gier <i>APP</i></b><p>@here 🏆 ${L('Sign-ups are open: Evening Chess Cup', 'Zapisy otwarte: Wieczorny Puchar Szachowy')}</p><span>${L('Chess · knockout · Starts Friday 20:00', 'Szachy · pucharowy · Start: piątek 20:00')}</span></div></div>
+    ${form}
+    ${acct ? `<h3>${L('Your channels', 'Twoje kanały')}${S ? ` · ${mine.length}/${S.max}` : ''}</h3>${!S ? `<p class="rknote">${L('Loading…', 'Wczytywanie…')}</p>` : mine.length ? mine.map(row).join('') : `<p class="rknote">${L('No channels yet.', 'Brak kanałów.')}</p>`}` : ''}
+    <p class="nthint">${L('The site keeps the webhook link, your settings and which account added it until the channel is removed. Deleting the webhook in Discord removes it here by itself.', 'Strona przechowuje link webhooka, ustawienia i konto, które go dodało, dopóki kanał nie zostanie usunięty. Usunięcie webhooka na Discordzie usuwa go też tutaj.')}</p>
+    <div class="row"><button type="button" class="btn" data-al="close">${L('Done', 'Gotowe')}</button></div>`;
+  if (box.dataset.h !== html) { const keep = document.activeElement?.id; morph(box, html); box.dataset.h = html; if (keep) document.getElementById(keep)?.focus?.(); }
+}
+function addAlert() {
+  if (!al || al.busy) return;
+  const hook = (al.win.el.querySelector('#al-hook')?.value || '').trim();
+  if (!hook) { d.toast(L('Paste the webhook link first.', 'Najpierw wklej link webhooka.'), true); return al.win.el.querySelector('#al-hook')?.focus(); }
+  if (!al.all && !al.sel.size) return d.toast(L('Pick at least one game, or choose Every game.', 'Wybierz choć jedną grę albo Wszystkie gry.'), true);
+  al.busy = true; paintAlerts();
+  d.send({ t: 'tour', op: 'sub_add', hook, label: al.label, lang: al.lang, ping: al.ping, games: al.all ? [] : [...al.sel] });
+}
+function onAlClick(e) {
+  const b = e.target.closest('[data-al]'); if (!b || !al || b.disabled) return;
+  e.preventDefault(); d.sfx.click();
+  const a = b.dataset.al, v = b.dataset.v;
+  if (a === 'close') return al.win.close();
+  if (a === 'acct') { al.win.close(); return d.needAccount?.(); }
+  if (a === 'all' || a === 'ping') { al[a] = v === 'true'; return paintAlerts(); }
+  if (a === 'lang') { al.lang = v; return paintAlerts(); }
+  if (a === 'g') { al.sel.has(v) ? al.sel.delete(v) : al.sel.add(v); return paintAlerts(); }
+  if (a === 'del') {
+    if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.classList.add('sure'); b.textContent = L('Sure? Tap again', 'Na pewno? Dotknij jeszcze raz'); setTimeout(() => { if (b.isConnected) { b.dataset.sure = ''; b.classList.remove('sure'); b.textContent = L('Remove', 'Usuń'); } }, 3500); return; }
+    return d.send({ t: 'tour', op: 'sub_del', sid: v });
+  }
 }
 
 // ---------- a match table: the waiting room and results lines ----------
@@ -323,6 +399,7 @@ document.addEventListener('click', e => {
   if (a === 'open') { histSheet?.close(); return openTour(id); }
   if (a === 'hist') { sheet?.close(); return openHist(); }
   if (a === 'close') return sheet?.close();
+  if (a === 'alerts') return openAlerts();
   if (a === 'join') { if (!d.me()?.user) { d.toast(L('Make a free account to play in tournaments (Account menu › Make an account).', 'Załóż darmowe konto, żeby grać w turniejach (menu konta › Załóż konto).'), true); return d.needAccount?.(); } return d.send({ t: 'tour', op: 'join', id }); }
   if (a === 'leave' || a === 'in') return d.send({ t: 'tour', op: a, id });
   if (a === 'more') return d.send({ t: 'tour', op: 'more', id, mid: b.dataset.mid });
@@ -342,8 +419,8 @@ const nextHour = () => { const x = new Date(Date.now() + 90 * 60_000); x.setMinu
 const newForm = () => ({ game: 'chess', fmt: 'ko', bo: 1, per: 4, adv: 2, max: 16, minLv: 0, start: nextHour(), en: '', pl: '', ren: '', rpl: '', c: [150, 80, 40], all: 10, opts: null });
 /** Mounts the tab into box; returns a function that stops it. */
 export function mountTourAdmin(box) {
-  adm = { box, cfg: null, games: null, defs: {}, form: null, hookEdit: false };
-  d.send({ t: 'tour', op: 'getcfg' });
+  adm = { box, cfg: null, games: null, defs: {}, form: null, hookEdit: false, subs: null };
+  d.send({ t: 'tour', op: 'getcfg' }); d.send({ t: 'tour', op: 'sub_list' });
   box.addEventListener('click', onAdmClick); box.addEventListener('input', onAdmInput); box.addEventListener('change', onAdmInput);
   paintAdmin();
   return () => { box.removeEventListener('click', onAdmClick); box.removeEventListener('input', onAdmInput); box.removeEventListener('change', onAdmInput); adm = null; };
@@ -379,18 +456,21 @@ function paintAdmin() {
       <p class="nthint">${L('Check-in opens 15 minutes before the start; sign-ups close then. Players who don’t check in are left out.', 'Potwierdzanie obecności zaczyna się 15 minut przed startem i wtedy kończą się zapisy. Kto nie potwierdzi obecności, nie gra.')}</p>
       <div class="row"><button type="button" class="btn w" data-ta="cancelform">${L('Back', 'Wróć')}</button><button type="submit" class="btn p" data-ta="create">${L('Open sign-ups', 'Otwórz zapisy')}</button></div></form>`;
   }
-  const hook = cfg ? `<section class="ta-hook"><h3>${L('Discord', 'Discord')}</h3>
+  const hook = cfg ? `<section class="ta-hook"><h3>${L('Hosts’ Discord channel (optional)', 'Kanał gospodarzy na Discordzie (opcjonalnie)')}</h3>
     <p class="nthint">${L('Paste a channel webhook (Discord: channel settings › Integrations › Webhooks › New webhook › Copy webhook URL). The site posts there when sign-ups open, check-in starts, the tournament starts and someone wins.', 'Wklej webhook kanału (Discord: ustawienia kanału › Integracje › Webhooki › Nowy webhook › Kopiuj URL webhooka). Strona napisze tam, gdy ruszą zapisy, zacznie się potwierdzanie obecności, wystartuje turniej i ktoś wygra.')}</p>
     ${cfg.on && !adm.hookEdit ? `<div class="ta-on"><p><b>✓ ${L('Connected', 'Połączono')}</b> <code>${esc(cfg.hook)}</code></p><div class="ta-acts"><button type="button" class="btn sm w" data-ta="hookedit">${L('Change', 'Zmień')}</button><button type="button" class="btn sm w" data-ta="hooktest">${L('Send a test', 'Wyślij próbę')}</button><button type="button" class="btn sm w" data-ta="hookoff">${L('Disconnect', 'Odłącz')}</button></div></div>`
       : `<div class="ta-hookin"><input class="field" id="ta-hook" placeholder="https://discord.com/api/webhooks/…" autocomplete="off" spellcheck="false"><button type="button" class="btn sm" data-ta="hooksave">${L('Save', 'Zapisz')}</button></div>`}
     <div class="ta-opt"><b>${L('Language of the posts', 'Język postów')}</b><div class="pills ta-hl"><button type="button" data-ta="hlang" data-v="pl" aria-pressed="${cfg.lang === 'pl'}">Polski</button><button type="button" data-ta="hlang" data-v="en" aria-pressed="${cfg.lang === 'en'}">English</button></div></div>
     <div class="ta-opt"><b>${L('Ping the channel (@here) when sign-ups open, check-in starts and the cup starts', 'Oznaczaj kanał (@here), gdy ruszają zapisy, obecność i turniej')}</b><div class="pills ta-hl"><button type="button" data-ta="hping" aria-pressed="${cfg.ping}">${cfg.ping ? L('On', 'Wł.') : L('Off', 'Wył.')}</button></div></div></section>` : '';
+  const subsHtml = adm.subs ? `<section class="ta-hook"><h3>${L(`Community channels · ${adm.subs.length}`, `Kanały społeczności · ${adm.subs.length}`)}</h3>
+    <p class="nthint">${L('Channels players added under Discord alerts on a tournament page. They get the same news, filtered by their games. Remove any that look wrong.', 'Kanały dodane przez graczy w oknie Powiadomienia na Discordzie. Dostają te same wiadomości, tylko dla wybranych gier. Usuń te, które wyglądają podejrzanie.')}</p>
+    ${adm.subs.length ? adm.subs.map(x => `<div class="al-row"><span class="al-ico" aria-hidden="true">#</span><div><b>${esc(x.label || L('Discord channel', 'Kanał na Discordzie'))}</b><small>${esc(gamesLine(x.games))} · ${x.lang === 'pl' ? 'PL' : 'EN'}${x.ping ? ' · @here' : ''} · ${L(`${x.sent} posts`, `postów: ${x.sent}`)} · 👤 <button type="button" class="linkish" data-tour="prof" data-pt="${esc(x.byPt)}">${esc(x.byName)}</button></small><code>${esc(x.hook)}</code></div><button type="button" class="btn sm w" data-ta="subdel" data-id="${x.sid}">${L('Remove', 'Usuń')}</button></div>`).join('') : `<p class="rknote">${L('None yet.', 'Jeszcze żadnego.')}</p>`}</section>` : '';
   const html = f ? formHtml || `<p class="rknote">${L('Loading…', 'Wczytywanie…')}</p>`
     : `<p class="rknote">${L('Pick a game, open sign-ups, and the site runs the rest: check-in, the bracket, calling each match to its own table, walkovers and house prizes.', 'Wybierz grę i otwórz zapisy, a resztą zajmie się strona: obecnością, drabinką, wzywaniem każdego meczu do osobnego stołu, walkowerami i nagrodami.')}</p>
       <div class="row"><button type="button" class="btn p" data-ta="new">🏆 ${L('New tournament', 'Nowy turniej')}</button></div>
       ${active.length ? `<h3>${L('Now', 'Teraz')}</h3>${active.map(row).join('')}` : ''}
       ${ended.length ? `<h3>${L('Ended lately', 'Ostatnio zakończone')}</h3>${ended.map(row).join('')}` : ''}
-      ${hook}`;
+      ${hook}${subsHtml}`;
   if (box.dataset.h !== html) { const keep = document.activeElement?.id; morph(box, html); box.dataset.h = html; if (keep) document.getElementById(keep)?.focus?.(); }
 }
 function readForm() {
@@ -422,9 +502,9 @@ function onAdmClick(e) {
     return d.send({ t: 'tour', op: 'create', game: f.game, fmt: f.fmt, bo: f.bo, per: f.per, adv: f.adv, max: f.max, minLv: f.minLv, start: f.start, name: { en: f.en, pl: f.pl }, rules: { en: f.ren, pl: f.rpl }, prize: { c: f.c, all: f.all }, opts: formOpts(f) });
   }
   if (a === 'later') return d.send({ t: 'tour', op: 'later', id, min: 15 });
-  if (a === 'start' || a === 'cancel' || a === 'del') {
+  if (a === 'start' || a === 'cancel' || a === 'del' || a === 'subdel') {
     if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.classList.add('sure'); b.dataset.was = b.innerHTML; b.textContent = L('Sure? Tap again', 'Na pewno? Dotknij jeszcze raz'); setTimeout(() => { if (b.isConnected) { b.dataset.sure = ''; b.classList.remove('sure'); b.innerHTML = b.dataset.was; } }, 3500); return; }
-    return d.send({ t: 'tour', op: a, id });
+    return a === 'subdel' ? d.send({ t: 'tour', op: 'sub_del', sid: id }) : d.send({ t: 'tour', op: a, id });
   }
   if (a === 'hookedit') { adm.hookEdit = true; return paintAdmin(); }
   if (a === 'hooksave') { adm.hookEdit = false; return d.send({ t: 'tour', op: 'cfg', hook: adm.box.querySelector('#ta-hook')?.value || '' }); }
