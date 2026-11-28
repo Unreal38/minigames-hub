@@ -990,3 +990,8 @@ body.night .pf .mood.happy { background: #4a2240; color: #ffd0e0; }
   .pf .build .bdone { flex: none; width: 52px; height: 52px; min-height: 0; padding: 0; border-radius: 50%; display: grid; place-items: center; }
   .pf .build .bdone svg { display: block; width: 26px; height: 26px; } .pf .build .bdone span { display: none; }
 }
+/* Nest picker: species (when renamed) and element tags on each pet tile */
+.pf .pickpet .ptype { display: flex; flex-direction: column; align-items: center; gap: 3px; width: 100%; min-width: 0; }
+.pf .pickpet .ptype .ptsp { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf .pickpet .prtags { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px; }
+.pf .pickpet .prtags .el { font-size: 11px; padding: 0 7px; line-height: 1.5; white-space: nowrap; }

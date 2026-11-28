@@ -67,6 +67,8 @@ const mat = (k, n, cls = '') => `<span class="mat ${cls}" title="${MATS[k]}">${m
 const costHtml = (cost, inv) => Object.keys(cost || {}).length ? Object.entries(cost).map(([k, n]) => mat(k, n, inv && (inv[k] || 0) < n ? 'short' : '')).join('') : `<span class="mat">${L('Free', 'Za darmo')}</span>`;
 const wait = ms => { const m = Math.ceil(ms / 60000); return m >= 60 ? (m % 60 ? L(`${m / 60 | 0}h ${m % 60}m`, `${m / 60 | 0} godz. ${m % 60} min`) : L(`${m / 60}h`, `${m / 60} godz.`)) : L(`${m}m`, `${m} min`); };
 const span = min => min >= 60 ? cnt(min / 60, 'hour', 'hours', 'godzina', 'godziny', 'godzin') : cnt(min, 'minute', 'minutes', 'minuta', 'minuty', 'minut');
+// The Nest picker shows what each pet is: its species when it has been renamed, and its element(s) (a variant's own element, a hybrid's two).
+const nestType = p => `<span class="ptype">${SPECIES[p.sp] && p.name !== SPECIES[p.sp].name ? `<small class="ptsp">${SPECIES[p.sp].name}</small>` : ''}<span class="prtags">${elTags(p)}</span></span>`;
 const elTags = p => elTag(elOf(p)) + (SPECIES[p.sp].el2 ? elTag(SPECIES[p.sp].el2) : '');
 // Each place to explore drawn as its matching isle ground (COS.ig index, same island as the profile isle) on its own sky: [top, bottom].
 const ZONE_ISLE = { woods: [5, '#b9e4ff', '#e9f8ff'], cove: [6, '#93d6ff', '#d9f3ff'], ridge: [2, '#c6d3e8', '#eef2f8'], hills: [8, '#ffc79a', '#ffeccf'], meadow: [14, '#cfdcff', '#f6f1c6'],
@@ -689,7 +691,7 @@ export function mount(app, ctx) {
       const fr = panel.friend, pool = F.pets, pk = panel.pick;
       const A = pool.find(x => x.id === pk[0]), Bp = fr ? fr.pet : pool.find(x => x.id === pk[1]);
       const rows = favFirst(pool).map(x => { const why = cannotPair(x), on = pk.includes(x.id);
-        return `<button type="button" class="pickpet${why ? ' off' : ''}" data-a="nestpick" data-id="${x.id}" aria-pressed="${on}">${petRow(x, why ? ' · ' + why : '')}</button>`; }).join('');
+        return `<button type="button" class="pickpet${why ? ' off' : ''}" data-a="nestpick" data-id="${x.id}" aria-pressed="${on}">${petRow(x, why ? ' · ' + why : '')}${nestType(x)}</button>`; }).join('');
       let pre = '';
       const can = A && Bp ? charmsFor(A, Bp) : {}, ch = Object.fromEntries((panel.ch || []).filter(k => can[k] && F.charms?.[k] > 0).map(k => [k, true]));
       if (A && Bp) {
@@ -708,7 +710,7 @@ export function mount(app, ctx) {
       }
       box.innerHTML = `<div class="panel tripp"><h2>${L(`${fr ? `Playdate with ${esc(fr.pet.name)}` : 'The Nest'}`, `${fr ? `Wspólna zabawa: ${esc(fr.pet.name)}` : 'Gniazdo'}`)}</h2>
         <p>${L(`${fr ? `Pick one of your pets to meet ${esc(fr.name)}'s ${esc(fr.pet.name)}. The egg comes home to your Nest.` : 'Pick two pets. Any two can have an egg together, and the baby takes after both.'}`, `${fr ? `Wybierz swojego zwierzaka na spotkanie: ${esc(fr.pet.name)} (${esc(fr.name)}). Jajko trafi do twojego Gniazda.` : 'Wybierz dwa zwierzaki. Każda para może mieć jajko, a maluch dziedziczy po obojgu.'}`)}</p>
-        ${fr ? `<div class="party"><span class="pickpet" aria-pressed="true">${petRow(fr.pet, ' · ' + esc(fr.name))}</span></div>` : ''}
+        ${fr ? `<div class="party"><span class="pickpet" aria-pressed="true">${petRow(fr.pet, ' · ' + esc(fr.name))}${nestType(fr.pet)}</span></div>` : ''}
         <div class="party">${rows}</div>${pre}${charmPick(A && Bp, can, ch)}${foodRow(L('Love Muffin', 'Babeczka miłości'), ['muffin'], panel.muffin ? 'muffin' : '', 'muffinuse', () => L(`egg ${Math.round(RECIPES.muffin.hatch * 100)}% sooner · you have ${F.inv.muffin}`, `jajko o ${Math.round(RECIPES.muffin.hatch * 100)}% szybciej · masz: ${F.inv.muffin}`), L('No muffin', 'Bez babeczki'))}
         <div class="row end stick"><button type="button" class="btn w" data-a="shut">${L(`Not now`, `Nie teraz`)}</button><button type="button" class="btn big m" data-a="pair" ${A && Bp ? '' : 'disabled'}>${L(`Off to the Nest`, `Do Gniazda`)}</button></div></div>`;
       return;
