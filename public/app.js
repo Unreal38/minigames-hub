@@ -2750,6 +2750,7 @@ function renderLobby() {
   const seats = Array.from({ length: max }, (_, i) => seated[i] || null);
   const watchers = [...seated.slice(max), ...r.players.filter(p => p.watch)];
   const meWatch = r.players.find(p => p.id === st.id)?.watch, saving = (r.sit || []).includes(st.id);
+  const tourMissing = T ? T.p.map(x => x.name).filter(n => !seated.some(p => p.name === n)) : []; // match players not at the table yet
   const pill = (opt, val, label) => `<button type="button" aria-pressed="${String(r.opts[opt]) === String(val)}" data-act="opt" data-opt="${opt}" data-val="${val}" ${host ? '' : 'disabled'}>${optText(String(label), r.game).replace(/^(\d+) hands$/, '$1 rozdań')}</button>`;
   const html = `${topbar()}
   <main class="wrap lobby">
@@ -2767,7 +2768,7 @@ function renderLobby() {
       <div class="seats">${seats.map((p, i) => p ? `<div class="seat full ${p.online ? '' : 'offline'}${cardBgCls(p.fl)}" data-pid="${esc(p.id)}"${prof(p)}>
           ${cardBg(p.fl)}${avatarHtml(p.color, p.av, 64, frameCls(p.fl))}${petImg(p.pet, 52)}
           <div><b>${nameHtml(p.name, p.fl)} ${p.lv ? lvChip(p.lv, p.cn) : ''}</b>${titleHtml(p.fl)}<span>${p.id === r.host ? L('Host', 'Gospodarz') : L('Ready', 'W gotowości')}${p.id === st.id ? L(' · you', ' · ty') : ''}${p.online ? '' : L(' · reconnecting', ' · łączy się ponownie')}</span></div></div>`
-        : `<div class="seat open">${backSvg('width="56" height="56"')}<div><b>${T ? L('Waiting for a player', 'Czekamy na gracza') : L(`Seat ${i + 1} is open`, `Miejsce ${i + 1} wolne`)}</b><span>${T ? L('No bots in tournaments: the match starts when everyone is here.', 'W turniejach nie ma botów: mecz zacznie się, gdy wszyscy przyjdą.') : gm.openSeat}</span></div></div>`).join('')}</div>
+        : `<div class="seat open">${backSvg('width="56" height="56"')}<div><b>${T ? L(`Waiting for ${esc(tourMissing[i - seated.length] || '…')}`, `Czekamy: ${esc(tourMissing[i - seated.length] || '…')}`) : L(`Seat ${i + 1} is open`, `Miejsce ${i + 1} wolne`)}</b><span>${T ? L('No bots in tournaments: the match starts when everyone is here.', 'W turniejach nie ma botów: mecz zacznie się, gdy wszyscy przyjdą.') : gm.openSeat}</span></div></div>`).join('')}</div>
       ${T ? '' : botSeatsHtml(r, gm, host, Math.min(seated.length, max))}
       ${watchers.length ? `<p style="margin:0;color:var(--muted)">${L('Watching', 'Oglądają')}: ${watchers.map(p => nameHtml(p.name, p.fl)).join(', ')}</p>` : ''}
       ${meWatch && !T ? `<div class="row"><button type="button" class="btn m" data-act="sit" aria-pressed="${saving}">${saving ? L('✓ Next free seat is yours', '✓ Następne wolne miejsce jest twoje') : L('Take a seat', 'Zajmij miejsce')}</button></div>` : ''}
