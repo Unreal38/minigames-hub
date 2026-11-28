@@ -14,6 +14,13 @@ const TEXT = {
   'Check-in opens 15 minutes before the start.': 'Potwierdzanie obecności zaczyna się 15 minut przed startem.',
   'Give the tournament a name.': 'Nadaj turniejowi nazwę.',
   'Make an account to play in tournaments.': 'Załóż konto, żeby grać w turniejach.',
+  'Make an account to add a Discord channel.': 'Załóż konto, żeby dodać kanał z Discorda.',
+  'Only the person who added that channel can remove it.': 'Ten kanał może usunąć tylko osoba, która go dodała.',
+  'That channel already gets the tournament news.': 'Ten kanał już dostaje wiadomości o turniejach.',
+  'The site has as many Discord channels as it can take right now. Try again later.': 'Strona ma teraz tyle kanałów z Discorda, ile może obsłużyć. Spróbuj później.',
+  'Too many channels added in the last hour. Try again later.': 'W ostatniej godzinie dodano za dużo kanałów. Spróbuj później.',
+  'Discord says that webhook doesn’t exist. Copy the link again from the channel settings.': 'Discord twierdzi, że ten webhook nie istnieje. Skopiuj link jeszcze raz z ustawień kanału.',
+  'Discord didn’t take the test message. Check the link and try again in a minute.': 'Discord nie przyjął wiadomości próbnej. Sprawdź link i spróbuj za minutę.',
   'Paste the Discord webhook link first.': 'Najpierw wklej link webhooka z Discorda.',
   'Pick a game that can be played as a tournament.': 'Wybierz grę, w którą da się rozegrać turniej.',
   'Pick a start time in the future.': 'Wybierz godzinę startu w przyszłości.',
@@ -140,6 +147,7 @@ const SEASON = { 'Winter drop': 'kolekcji zimowej', 'Spring drop': 'kolekcji wio
 const BACK = { 'mid-November': 'w połowie listopada', March: 'w marcu', June: 'w czerwcu', October: 'w październiku' };
 // [pattern, how to say it]: the function gets the captured pieces.
 const FORMS = [
+  [/^You can add at most (.+) channels\. Remove one first\.$/, n => `Możesz dodać najwyżej ${n} kanały. Najpierw usuń któryś.`],
   [/^You need level (.+) to sign up for this tournament\.$/, n => `Do zapisu na ten turniej potrzeba poziomu ${n}.`],
   [/^That is part of the (.+)\. It is back in (.+)\.$/, (s, b) => `To część ${SEASON[s] || s}. Wraca ${BACK[b] || b}.`],
   [/^You already asked (.+)\.$/, u => `Zaproszenie do gracza ${u} jest już wysłane.`],

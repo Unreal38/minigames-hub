@@ -8,7 +8,10 @@
 //   a match). Hosts can set a result by hand, replay a match, remove a player, move the start or cancel.
 // - Prizes come from the house only (never from players): coins for the top three and a little for everyone who
 //   played, and a tournament win that counts towards the Cup Winner titles. Nobody pays to enter.
-// - The news goes to the hosts' Discord channel too when they paste a channel webhook in the Admin panel.
+// - The news goes to the hosts' Discord channel too when they paste a channel webhook in the Admin panel, and to any
+//   community's channel: anyone with an account can add a webhook from the tournament page (Discord alerts), pick the
+//   games, the language and @here. A test post goes out first and the channel is kept only if Discord takes it; a
+//   webhook that Discord says is gone (deleted in the server) is removed by itself.
 // server.js owns the tables: it hands over open/here/start/playing/close (see setup) and tells gameOver() how a
 // match game ended. Everything is kept in DATA_DIR/tour.json.
 import fs from 'node:fs';
@@ -32,8 +35,11 @@ const SITE_URL = (process.env.SITE_URL || 'https://zatokagier.com').replace(/\/+
 
 let tours = [];                       // every tournament, newest first
 let cfg = { hook: '', lang: 'pl', ping: true };
+let subs = [];                        // community channels: { id, url, lang, ping, games: [] (empty: every game), label, by, at, fails, sent }
+export const SUB_LIMITS = { mine: 3, all: 500, label: 40, adds: 6 }; // per account, on the site, name length, adds an hour
+const addsBy = new Map();             // pid -> times of the last adds (an hour)
 let deps = null, onChange = () => {}, saveT = 0;
-const posts = [];                     // tests: the Discord posts that would have gone out
+const posts = [], dead = new Set();   // tests: the Discord posts that would have gone out; webhooks 'deleted in Discord'
 const TEST = !!process.env.TOUR_TEST;
 
 /** server.js: { metaOf(id), choices(id), names(id) -> {en, pl}, open(T, m) -> code, here(code) -> Set of pids at that
@@ -50,17 +56,19 @@ function save() {
   try {
     fs.mkdirSync(store.DATA_DIR, { recursive: true });
     const tmp = FILE + '.tmp';
-    fs.writeFileSync(tmp, JSON.stringify({ v: 1, cfg, tours }));
+    fs.writeFileSync(tmp, JSON.stringify({ v: 1, cfg, subs, tours }));
     fs.renameSync(tmp, FILE);
   } catch (e) { console.error(`could not save ${FILE}:`, e.message); }
 }
 export function saveNow() { clearTimeout(saveT); saveT = 0; save(); }
-function changed() { if (!saveT) saveT = setTimeout(() => { saveT = 0; save(); }, 1000); onChange(); }
+const saveSoon = () => { if (!saveT) saveT = setTimeout(() => { saveT = 0; save(); }, 1000); };
+function changed() { saveSoon(); onChange(); }
 /** At start. A match that was being played (or called) when the server stopped is called again: its table is gone. */
 export function load() {
   let d = {};
   try { d = JSON.parse(fs.readFileSync(FILE, 'utf8')); } catch {}
   if (d.cfg && typeof d.cfg === 'object') cfg = { hook: HOOK_RE.test(d.cfg.hook || '') ? d.cfg.hook : '', lang: d.cfg.lang === 'en' ? 'en' : 'pl', ping: d.cfg.ping !== false };
+  subs = Array.isArray(d.subs) ? d.subs.filter(x => x && x.id && HOOK_RE.test(x.url || '')) : [];
   tours = Array.isArray(d.tours) ? d.tours.filter(T => T && T.id && T.game) : [];
   const now = Date.now();
   for (const T of tours) for (const m of allMatches(T)) if (m.st === 'call' || m.st === 'play') { m.st = 'wait'; m.code = ''; m.due = 0; m.next = 0; m.ext = []; }
@@ -352,6 +360,15 @@ export function handle(p, m, admin) {
       x.ext.push(p.pid); x.due += MORE_MS; changed(); return { ok: true };
     }
   }
+  if (op === 'sub_list') return { subs: subsView(p, admin) };
+  if (op === 'sub_add') return subAdd(p, m, admin);
+  if (op === 'sub_del') {
+    const x = subs.find(y => y.id === String(m.sid ?? ''));
+    if (!x) return { ok: true, subs: subsView(p, admin) };
+    if (!admin && x.by !== p?.pid) return { err: 'Only the person who added that channel can remove it.' };
+    subs = subs.filter(y => y !== x); saveNow(); console.log(`tour: Discord channel ${x.id} removed by ${p?.user || '?'}`);
+    return { ok: true, subs: subsView(p, admin) };
+  }
   if (!admin) return { err: 'Only hosts can do that.' };
   if (op === 'cfg') {
     if (m.hook !== undefined) { const h = String(m.hook ?? '').trim(); if (h && !HOOK_RE.test(h)) return { err: 'That is not a Discord channel webhook link.' }; cfg.hook = h; }
@@ -428,37 +445,106 @@ export function handle(p, m, admin) {
 }
 const cfgView = () => ({ hook: cfg.hook ? cfg.hook.replace(/\/[\w-]{20,100}$/, '/…' + cfg.hook.slice(-4)) : '', on: !!cfg.hook, lang: cfg.lang, ping: cfg.ping });
 
+// ---------- community Discord channels ----------
+const mask = u => u.replace(/\/[\w-]{20,100}$/, '/…' + u.slice(-4));
+const subView = (x, admin) => ({ sid: x.id, hook: mask(x.url), lang: x.lang, ping: x.ping, games: x.games, label: x.label, at: x.at, sent: x.sent || 0,
+  ...(admin ? { byName: nameOf(x.by), byPt: tagOf(x.by) } : {}) });
+/** The channels this person added (a host sees every one), plus which games can hold a cup for the game chips. */
+const subsView = (p, admin) => ({ mine: subs.filter(x => p?.pid && x.by === p.pid).map(x => subView(x)), all: admin ? subs.map(x => subView(x, true)) : null,
+  games: Object.keys(gamesOk(deps.allGames?.() || [])), max: SUB_LIMITS.mine });
+/** sub_add { hook, lang, ping, games, label }: checks the link, posts a test message and keeps the channel only if Discord takes it. */
+async function subAdd(p, m, admin) {
+  if (!p?.user) return { err: 'Make an account to add a Discord channel.' };
+  const url = String(m.hook ?? '').trim().replace(/^https:\/\/discordapp\.com/, 'https://discord.com').replace(/\?.*$/, '');
+  if (!HOOK_RE.test(url)) return { err: 'That is not a Discord channel webhook link.' };
+  if (subs.some(x => x.url === url) || url === cfg.hook) return { err: 'That channel already gets the tournament news.' };
+  if (subs.filter(x => x.by === p.pid).length >= SUB_LIMITS.mine) return { err: `You can add at most ${SUB_LIMITS.mine} channels. Remove one first.` };
+  if (subs.length >= SUB_LIMITS.all) return { err: 'The site has as many Discord channels as it can take right now. Try again later.' };
+  const now = Date.now(), recent = (addsBy.get(p.pid) || []).filter(t => now - t < 3600_000);
+  if (recent.length >= SUB_LIMITS.adds) return { err: 'Too many channels added in the last hour. Try again later.' };
+  recent.push(now); addsBy.set(p.pid, recent);
+  const ok = new Set(Object.keys(gamesOk(deps.allGames?.() || [])));
+  const games = Array.isArray(m.games) ? [...new Set(m.games.map(String))].filter(g => ok.has(g)).slice(0, 60) : [];
+  const x = { id: newId(), url, lang: m.lang === 'en' ? 'en' : 'pl', ping: !!m.ping, games, label: line(m.label, SUB_LIMITS.label), by: p.pid, at: now, fails: 0, sent: 0 };
+  const r = await send(x, body('hello', null, x));
+  if (r !== 'ok') return { err: r === 'gone' ? 'Discord says that webhook doesn’t exist. Copy the link again from the channel settings.' : 'Discord didn’t take the test message. Check the link and try again in a minute.' };
+  if (subs.some(y => y.url === url)) return { ok: true, subs: subsView(p, admin) }; // two quick taps
+  subs.push(x); saveNow(); console.log(`tour: Discord channel ${x.id} added by ${p.user}${games.length ? ` (${games.join(', ')})` : ''}`);
+  return { ok: true, added: true, subs: subsView(p, admin) };
+}
+
 // ---------- Discord ----------
 const when = (t, lang) => new Date(t).toLocaleString(lang === 'pl' ? 'pl-PL' : 'en-GB', { timeZone: 'Europe/Warsaw', weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
-function post(kind, T) {
-  if (!cfg.hook) return;
-  const pl = cfg.lang === 'pl', X = (en, plt) => (pl ? plt : en), nm = T ? (pl ? T.name.pl || T.name.en : T.name.en || T.name.pl) : '';
-  const game = T ? (pl ? deps.names(T.game).pl : deps.names(T.game).en) : '', url = T ? `${SITE_URL}/?t=${T.id}` : SITE_URL;
+/** The message for one channel (its own language and @here setting). */
+function body(kind, T, to) {
+  const pl = to.lang === 'pl', X = (en, plt) => (pl ? plt : en), nm = T ? (pl ? T.name.pl || T.name.en : T.name.en || T.name.pl) : '';
+  const gname = id => (pl ? deps.names(id).pl : deps.names(id).en);
+  const game = T ? gname(T.game) : '', url = T ? `${SITE_URL}/?t=${T.id}` : SITE_URL;
   const fmt = T ? (T.fmt === 'ko' ? X(`knockout, best of ${T.bo}`, T.bo === 3 ? 'pucharowy, do 2 wygranych' : 'pucharowy, jedna gra') : X(`heats of ${T.per}`, `grupy po ${T.per}`)) : '';
   const prize = T ? [T.prize.c[0] && X(`1st: ${T.prize.c[0]} coins`, `1. miejsce: ${T.prize.c[0]} monet`), T.prize.all && X(`everyone who plays: ${T.prize.all}`, `każdy, kto zagra: ${T.prize.all}`)].filter(Boolean).join(' · ') : '';
   const top = T?.top?.map(nameOf) || [];
+  const which = to.games?.length ? to.games.map(gname).join(', ') : X('every game', 'wszystkie gry');
   const msg = {
     test: [X('Zatoka Gier tournaments are connected to this channel.', 'Turnieje Zatoki Gier są połączone z tym kanałem.'), '', ''],
-    open: [X(`🏆 Sign-ups are open: ${nm}`, `🏆 Zapisy otwarte: ${nm}`), `${game} · ${fmt}\n${X('Starts', 'Start')}: ${when(T?.start, cfg.lang)}\n${prize}`, X('Sign up on the site', 'Zapisz się na stronie')],
-    checkin: [X(`⏰ Check-in is open: ${nm}`, `⏰ Potwierdzanie obecności: ${nm}`), X(`Signed up? Press “I’m here” on the site before ${when(T?.start, cfg.lang)}, or you’re out.`, `Zapisani: kliknijcie „Jestem” na stronie przed ${when(T?.start, cfg.lang)}, inaczej odpadacie.`), ''],
-    live: [X(`▶️ ${nm} has started`, `▶️ ${nm}: start!`), X(`${T?.seed?.length} players. The site calls each match to its table.`, `Graczy: ${T?.seed?.length}. Strona sama zawoła każdy mecz do stołu.`), X('Watch the bracket', 'Zobacz drabinkę')],
+    hello: [X('🔔 This channel now gets Zatoka Gier tournament news.', '🔔 Ten kanał dostaje teraz wiadomości o turniejach Zatoki Gier.'),
+      X(`Games: ${which}. You’ll see a post when sign-ups open, check-in starts, a cup starts and someone wins.\nTo stop, remove the channel under Discord alerts on any tournament page, or delete this webhook in the channel settings.`,
+        `Gry: ${which}. Post pojawi się, gdy ruszą zapisy, zacznie się potwierdzanie obecności, wystartuje turniej i ktoś wygra.\nŻeby to wyłączyć, usuń kanał w oknie Powiadomienia na Discordzie na stronie dowolnego turnieju albo usuń ten webhook w ustawieniach kanału.`), X('Open Zatoka Gier', 'Otwórz Zatokę Gier')],
+    open: [X(`🏆 Sign-ups are open: ${nm}`, `🏆 Zapisy otwarte: ${nm}`), `${game} · ${fmt}\n${X('Starts', 'Start')}: ${when(T?.start, to.lang)}\n${prize}`, X('Sign up on the site', 'Zapisz się na stronie')],
+    checkin: [X(`⏰ Check-in is open: ${nm}`, `⏰ Potwierdzanie obecności: ${nm}`), X(`Signed up? Press “I’m here” on the site before ${when(T?.start, to.lang)}, or you’re out.`, `Zapisani: kliknijcie „Jestem” na stronie przed ${when(T?.start, to.lang)}, inaczej odpadacie.`), X('Open the tournament', 'Otwórz turniej')],
+    live: [X(`▶️ ${nm} has started`, `▶️ ${nm}: start!`), X(`${T?.seed?.length} players. The site calls each match to its table. Anyone can watch.`, `Graczy: ${T?.seed?.length}. Strona sama zawoła każdy mecz do stołu. Każdy może oglądać.`), X('Watch the bracket', 'Zobacz drabinkę')],
     done: [X(`🏆 ${nm}: ${top[0]} is the champion!`, `🏆 ${nm}: wygrywa ${top[0]}!`), top.slice(1).map((n, i) => `${i + 2}. ${n}`).join(' · '), X('Results', 'Wyniki')],
     few: [X(`${nm} is off`, `${nm}: odwołany`), X('Fewer than two players were ready.', 'Gotowych było mniej niż dwóch graczy.'), ''],
     cancel: [X(`${nm} was cancelled`, `${nm}: odwołany`), X('A host cancelled it.', 'Gospodarz go odwołał.'), ''],
-    later: [X(`⏳ ${nm} starts later`, `⏳ ${nm}: start przesunięty`), `${X('New start', 'Nowy start')}: ${when(T?.start, cfg.lang)}`, ''],
+    later: [X(`⏳ ${nm} starts later`, `⏳ ${nm}: start przesunięty`), `${X('New start', 'Nowy start')}: ${when(T?.start, to.lang)}`, X('Open the tournament', 'Otwórz turniej')],
   }[kind];
-  if (!msg) return;
-  const ping = cfg.ping && (kind === 'open' || kind === 'checkin' || kind === 'live');
-  const body = { username: 'Zatoka Gier', content: `${ping ? '@here ' : ''}${msg[0]}`.slice(0, 1900), allowed_mentions: { parse: ping ? ['everyone'] : [] },
-    embeds: msg[1] || msg[2] ? [{ description: `${msg[1]}${msg[2] ? `\n[${msg[2]}](${url})` : ''}`.slice(0, 3900), color: 0xffb547 }] : [] };
-  if (TEST) { posts.push({ kind, ...body }); return; }
-  fetch(cfg.hook, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(8000) })
-    .then(r => { if (!r.ok) console.warn(`tour: Discord answered ${r.status} to the ${kind} post`); }, e => console.warn(`tour: could not post to Discord (${e.message})`));
+  if (!msg) return null;
+  const ping = to.ping && (kind === 'open' || kind === 'checkin' || kind === 'live');
+  return { kind, username: 'Zatoka Gier', avatar_url: `${SITE_URL}/icon-192.png`, content: `${ping ? '@here ' : ''}${msg[0]}`.slice(0, 1900), allowed_mentions: { parse: ping ? ['everyone'] : [] },
+    embeds: msg[1] || msg[2] ? [{ title: T ? `${nm}`.slice(0, 250) : undefined, url: T ? url : undefined, description: `${msg[1]}${msg[2] ? `\n[${msg[2]}](${url})` : ''}`.slice(0, 3900), color: 0xffb547,
+      thumbnail: T ? { url: `${SITE_URL}/gamepics/${T.game}-s.jpg` } : undefined }] : [] };
+}
+/** One post to one channel: 'ok', 'gone' (Discord says the webhook was deleted) or 'fail'. Waits once on a rate limit. */
+async function send(to, b, again = true) {
+  if (!b) return 'fail';
+  const { kind, ...json } = b;
+  if (TEST) { const gone = /\/webhooks\/0000/.test(to.url) || dead.has(to.url); posts.push({ kind, to: to.id || 'host', ...json }); return gone ? 'gone' : 'ok'; }
+  try {
+    const r = await fetch(to.url + '?wait=false', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(json), signal: AbortSignal.timeout(8000) });
+    if (r.ok) return 'ok';
+    if (r.status === 404 || r.status === 401) return 'gone';
+    if (r.status === 429 && again) { const w = Math.min(10, +(await r.json().catch(() => ({}))).retry_after || 2); await new Promise(f => setTimeout(f, w * 1000)); return send(to, b, false); }
+    console.warn(`tour: Discord answered ${r.status} to the ${kind} post (${to.id || 'hosts'})`); return 'fail';
+  } catch (e) { console.warn(`tour: could not post to Discord (${e.message})`); return 'fail'; }
+}
+// Posts go out one after another (Discord limits how fast one address may post), so a big list takes a little while.
+const queue = []; let pumping = false;
+async function pump() {
+  if (pumping) return; pumping = true;
+  while (queue.length) {
+    const [to, b] = queue.shift(), r = await send(to, b);
+    if (to.id) { // a community channel: count it, and drop it if the webhook was deleted or keeps failing
+      if (r === 'ok') { to.fails = 0; to.sent = (to.sent || 0) + 1; }
+      else if (r === 'gone' || ++to.fails >= 10) { subs = subs.filter(x => x !== to); console.log(`tour: Discord channel ${to.id} removed (${r === 'gone' ? 'webhook deleted' : 'kept failing'})`); }
+      changed();
+    }
+    if (!TEST) await new Promise(f => setTimeout(f, 120));
+  }
+  pumping = false;
+}
+/** The news about T (or the hosts' test) to the hosts' channel and every community channel that follows its game. */
+function post(kind, T) {
+  const to = [];
+  if (cfg.hook) to.push({ url: cfg.hook, lang: cfg.lang, ping: cfg.ping });
+  if (T) for (const x of subs) if (!x.games.length || x.games.includes(T.game)) to.push(x);
+  for (const x of to) queue.push([x, body(kind, T, x)]);
+  pump();
 }
 /** Tests only (TOUR_TEST=1): the posts so far, or moving a tournament's clock. */
 export function testHook(k, m = {}) {
   if (!TEST) return null;
   if (k === 'posts') return posts.slice();
+  if (k === 'kill') { const x = subs.find(y => y.id === m.sid); if (x) dead.add(x.url); return !!x; }
+  if (k === 'subs') return subs.map(x => ({ id: x.id, games: x.games, by: tagOf(x.by), fails: x.fails, sent: x.sent }));
   const T = byId(String(m.id ?? ''));
   if (k === 'start' && T) { T.start = Date.now() + (+m.in || 0); return true; }
   if (k === 'over' && T) { const x = matchOf(T, String(m.mid ?? '')); if (!x) return null; gameOver(T.id, x.id, (m.order || []).map((pt, i) => ({ pid: store.byTag(pt)?.pid, place: i + 1 })).filter(y => y.pid)); return true; }

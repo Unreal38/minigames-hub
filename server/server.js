@@ -793,6 +793,7 @@ function tourGameOver(r) {
 }
 tour.setup({
   metaOf: id => (isGame(id) ? GAMES[id].meta : null), choices: id => seatChoices(GAMES[id].meta),
+  allGames: () => Object.keys(GAMES),
   names: id => ({ en: GAMES[id]?.meta.name || id, pl: GAMES_PL[id]?.name || GAMES[id]?.meta.name || id }),
   open: openTourTable, here: tourHere, start: tourStart, close: tourClose, exists: code => rooms.has(code),
   playing: code => { const r = rooms.get(code); return !!r?.G && r.G.ph !== 'end'; }, holding: () => notice.holding(),
@@ -813,13 +814,15 @@ function tourMsgIn(c, m) {
   if (!allow('tour:' + c.token, 40, 60_000)) return send(c, { t: 'tour', op: 'err', err: 'Slow down a little.' });
   const p = store.profileOf(c.token), admin = store.isAdmin(p);
   if (m.test && process.env.TOUR_TEST) return send(c, { t: 'tour', op: 'test', k: m.test, v: tour.testHook(m.test, m) });
-  const r = tour.handle(p, m, admin);
+  Promise.resolve(tour.handle(p, m, admin)).then(r => tourReply(c, p, m, r), e => { console.error('tour:', e); send(c, { t: 'tour', op: 'err', err: 'Something went wrong. Try again.', of: m.op }); });
+}
+function tourReply(c, p, m, r) {
   if (r.err) return send(c, { t: 'tour', op: 'err', err: r.err, of: m.op });
   if (m.op === 'getcfg' && r.cfg) { // the hosts' form: which games can hold a cup, in which formats, and each one's table settings
     r.games = tour.gamesOk(Object.keys(GAMES));
     r.defs = Object.fromEntries(Object.keys(r.games).map(id => [id, { ...cleanTableOpts(id, {}), __max: GAMES[id].meta.maxPlayers }]));
   }
-  if (r.ok && m.op !== 'hist' && m.op !== 'one') console.log(`tour: ${p?.user || p?.name} ${m.op}${m.id ? ' ' + m.id : ''}`);
+  if (r.ok && m.op !== 'hist' && m.op !== 'one' && !m.op?.startsWith?.('sub_')) console.log(`tour: ${p?.user || p?.name} ${m.op}${m.id ? ' ' + m.id : ''}`);
   send(c, { t: 'tour', op: 'ok', of: m.op, ...r });
 }
 
