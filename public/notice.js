@@ -13,7 +13,7 @@ export const clock = ms => {
   return h ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`;
 };
 
-let deps = null, cur = { maint: null, ann: null, news: null }, end = 0, tick = 0, sheet = null, newsT = 0, small = false;
+let deps = null, cur = { maint: null, ann: null, news: null }, end = 0, tick = 0, sheet = null, newsT = 0, small = false, extra = '';
 const $bar = () => document.getElementById('sitebar');
 
 /** app.js hands over what this needs: send, modal, toast, sfx, me() and inGame(). */
@@ -29,6 +29,8 @@ export function onNotice(m) {
   paintBar(); paintSheet(); tryNews();
 }
 export const holding = () => !!cur.maint;
+/** Another strip under these (public/tour.js: "Your match is ready", check-in, sign-ups open); '' takes it away. */
+export function setStrip(html) { if (html === extra) return; extra = html || ''; paintBar(); }
 
 // ---------- the strips at the top of every screen ----------
 function maintText() {
@@ -39,11 +41,12 @@ function maintText() {
 function paintBar() {
   const el = $bar(); if (!el) return;
   const annOn = cur.ann && LSget('ct_ann_x') !== cur.ann.id;
-  el.hidden = !cur.maint && !annOn;
-  el.innerHTML = (cur.maint ? `<div class="sb maint${small ? ' small' : ''}" role="status"><span class="sbico" aria-hidden="true">🔧</span>
+  el.hidden = !cur.maint && !annOn && !extra;
+  const html = (cur.maint ? `<div class="sb maint${small ? ' small' : ''}" role="status"><span class="sbico" aria-hidden="true">🔧</span>
       <button type="button" class="sbtxt" data-sb="fold" title="${small ? L('Show more', 'Pokaż więcej') : L('Make smaller', 'Zmniejsz')}">${small ? `<time>${clock(end - Date.now())}</time>` : maintText()}</button></div>` : '')
     + (annOn ? `<div class="sb ann" role="status"><span class="sbico" aria-hidden="true">📣</span><span class="sbtxt">${esc(pick(cur.ann))}</span>
-      <button type="button" class="sbx" data-sb="x" aria-label="${L('Hide this message', 'Ukryj tę wiadomość')}">×</button></div>` : '');
+      <button type="button" class="sbx" data-sb="x" aria-label="${L('Hide this message', 'Ukryj tę wiadomość')}">×</button></div>` : '') + extra;
+  if (el.dataset.h !== html) { el.innerHTML = html; el.dataset.h = html; }
   place();
 }
 // The strips float just under the page's top bar while it is in view (so they never cover the logo or account

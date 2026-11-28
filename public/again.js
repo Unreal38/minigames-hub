@@ -3,11 +3,13 @@
 // Watchers (people who joined mid-game) get "Take a seat next round" instead.
 import { avatarHtml } from './avatar.js';
 import { L, word } from './i18n.js';
+import { tourAgainHtml } from './tour.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 // label: the game's wording for another round, e.g. "Play again" or "Race again".
 export function againHtml(ctx, room, label = L('Play again', 'Zagraj jeszcze raz')) {
+  if (room?.tour) return tourAgainHtml(room); // a tournament match: the site decides what comes next
   const players = room?.players || [], hostId = room?.host, votes = new Set(room?.again || []);
   const others = players.filter(p => p.id !== hostId && !p.watch), yes = others.filter(p => votes.has(p.id)), n = others.length;
   const hostName = esc(players.find(p => p.id === hostId)?.name || L('the host', 'gospodarz'));

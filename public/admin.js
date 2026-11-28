@@ -3,6 +3,7 @@
 // the reports and sanctions and checks that only ADMINS accounts see or change anything.
 import { L, LOCALE } from './i18n.js';
 import { mountNotices } from './notice.js';
+import { mountTourAdmin } from './tour.js';
 import { PEEKS, peekPick, setPeek, WX_PEEKS, wxPeekPick, setWxPeek, SKY_PEEKS, skyPeekPick, setSkyPeek } from './seasonpeek.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -112,7 +113,7 @@ const st = { mute: null };
 export const muteNote = () => st.mute ? `🔇 ${st.mute.until ? L(`Muted until ${when(st.mute.until)}`, `Wyciszenie do ${when(st.mute.until)}`) : L('Muted for good', 'Wyciszenie na stałe')}` : '';
 
 // ---------- the hosts' Admin panel ----------
-export const TABS = [['reports', '🚩', L('Reports', 'Zgłoszenia')], ['players', '🧑‍⚖️', L('Players', 'Gracze')], ['who', '👀', L('Who’s here', 'Kto jest')], ['notices', '📣', L('Site notices', 'Komunikaty')], ['looks', '🌦️', L('Previews', 'Podgląd')]];
+export const TABS = [['reports', '🚩', L('Reports', 'Zgłoszenia')], ['players', '🧑‍⚖️', L('Players', 'Gracze')], ['who', '👀', L('Who’s here', 'Kto jest')], ['notices', '📣', L('Site notices', 'Komunikaty')], ['tours', '🏆', L('Tournaments', 'Turnieje')], ['looks', '🌦️', L('Previews', 'Podgląd')]];
 let panel = null, tab = 'reports', stopTab = null, data = null, showClosed = false, found = null, findQ = '', openCases = 0;
 export const openCount = () => openCases;
 export function openAdmin(start) {
@@ -137,6 +138,7 @@ function showTab(k) {
   if (k === 'reports' || k === 'players') { d.send({ t: 'mod', op: 'list' }); const t = setInterval(() => d.send({ t: 'mod', op: 'list' }), 20_000); stopTab = () => clearInterval(t); paint(); }
   else if (k === 'who') { body.innerHTML = `<p class="rknote">${L('Everyone on the site right now. It updates by itself. Tap someone for their profile card.', 'Wszyscy, którzy są teraz na stronie. Lista odświeża się sama. Dotknij kogoś, żeby zobaczyć jego wizytówkę.')}</p><div class="rkall" id="who-list"></div>`; stopTab = d.whoMount(body); }
   else if (k === 'notices') stopTab = mountNotices(body);
+  else if (k === 'tours') stopTab = mountTourAdmin(body);
   else paintLooks(body);
 }
 function paintBadge() {

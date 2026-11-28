@@ -74,12 +74,14 @@ import * as wheel from './wheel.js';
 import * as notice from './notice.js';
 import * as plaza from './plaza.js';
 import * as modr from './mod.js';
+import * as tour from './tour.js';
 import { cosHas, COS } from '../public/cosmetics.js';
 import { dayOf } from './day.js';
 import { isBot, pageFor } from './seo.js';
 import { route as gameRoute, sitemap } from './gamepages.js';
 import { distinctCols, matchColors } from './colors.js';
 import { botPay } from './botpay.js';
+import { GAMES_PL } from '../public/lang/hub-pl.js';
 const FULL_BOT_PAY = process.env.BOT_PAY === 'full'; // tests only: the game tests check exact placement coins from quick bot matches, so each test's server gets BOT_PAY=full (test/persist.js checks the real share)
 
 const PORT = +process.env.PORT || 8080;
@@ -241,6 +243,7 @@ function roomInfo(r) {
     pre: !r.party && r.G?.mini?.readyAt && !r.G.mini.started ? { game: r.G.mini.game, left: Math.max(0, r.G.mini.readyAt - Date.now()) } : null,
     board: boardOf(r), played: r.played || 0, paid: r.G?.ph === 'end' && r.G.scored ? r.paid || null : null,
     again: againOf(r), sit: r.players.map(t => clients.get(t)?.id).filter(id => r.sit.has(id)),
+    tour: r.tour ? tour.tableInfo(r.tour.tid, r.tour.mid) : null,
   };
 }
 // Table size, as the waiting room, the open tables list and the game all count it (see seats.js): size seats in
@@ -440,6 +443,7 @@ function applySanction(r) {
   // (a device or address ban reaches other profiles too; lifting one may free any screen, so everyone hears again)
   const screens = [...clients.values()].filter(o => o.sock && (r.k === 'unban' || store.profileOf(o.token)?.pid === pid || store.sessions.peek(o.token)?.banPid === pid
     || r.k === 'ban' && modr.banOf(store.profileOf(o.token), o.token, o)?.pid === pid));
+  if (r.k === 'ban') tour.dropPid(pid, 'ban');
   for (const o of screens) {
     if (r.k === 'ban') { if (o.room) { leaveRoom(o); send(o, { t: 'room', room: null }); } plaza.leave(o); }
     tellStanding(o);
@@ -530,7 +534,7 @@ function sendState(r) {
   if (!r.G) return;
   // A game with several hands (seatWatcher hook) may seat a watcher between hands: they stop watching then.
   if (r.spect.size) for (const seat of r.G.seats) if (seat.id && r.spect.delete(seat.id)) { r.sit.delete(seat.id); sendRoom(r); }
-  if (r.G.ph === 'end' && !r.G.scored) { if (r.party) partyEnd(r); else scoreGame(r); }
+  if (r.G.ph === 'end' && !r.G.scored) { if (r.party) partyEnd(r); else { scoreGame(r); if (r.tour) tourGameOver(r); } }
   matchColors(r.G); // a player who joined mid-game may wear a colour someone already has
   const mod = GAMES[r.game];
   for (const t of r.players) {
@@ -553,7 +557,7 @@ function leaveRoom(c) {
   const r = rooms.get(c.room); c.room = null;
   if (!r) return;
   r.players = r.players.filter(t => t !== c.token); r.again?.delete(c.id); r.spect.delete(c.id); r.sit.delete(c.id);
-  if (!seatedOf(r).length) { r.spect.clear(); r.sit.clear(); } // only watchers left: they all play the next round
+  if (!seatedOf(r).length && !r.tour) { r.spect.clear(); r.sit.clear(); } // only watchers left: they all play the next round (never at a tournament table)
   if (r.G && r.G.ph === 'play') {
     GAMES[r.game].seatWatcher?.(r.G, { id: c.id }, false); // a watcher waiting for a seat changed their mind
     const s = r.G.seats.findIndex(x => x.id === c.id);
@@ -575,10 +579,13 @@ function joinRoom(c, r) {
   if (c.room) leaveRoom(c);
   if (plaza.leave(c)) broadcastStats();
   const mod = GAMES[r.game];
-  if (seatedOf(r).length >= mod.meta.maxPlayers && !r.G) return send(c, { t: 'err', msg: 'That table is full.' });
-  if (r.players.length >= 12) return send(c, { t: 'err', msg: 'That table is full.' });
+  // a tournament match table: its players sit down, everyone else may watch (watchers never get a seat there)
+  const watchOnly = !!r.tour && !tour.isPlayer(r.tour.tid, r.tour.mid, store.profileOf(c.token)?.pid);
+  if (seatedOf(r).length >= mod.meta.maxPlayers && !r.G && !watchOnly) return send(c, { t: 'err', msg: 'That table is full.' });
+  if (r.players.length >= (r.tour ? 40 : 12)) return send(c, { t: 'err', msg: 'That table is full.' });
   r.players.push(c.token); c.room = r.code;
-  if (r.G && !reclaimSeat(r, c)) r.spect.add(c.id); // a game is on: watch it, and take a seat next round if you like
+  if (watchOnly) r.spect.add(c.id);
+  else if (r.G && !reclaimSeat(r, c)) r.spect.add(c.id); // a game is on: watch it, and take a seat next round if you like
   if (!r.G) growSeats(r);
   sendRoom(r); send(c, { t: 'chatlog', log: r.chat }); sendState(r); broadcastRooms();
 }
@@ -747,6 +754,75 @@ function startGame(r) {
   sendRoom(r); sendState(r); broadcastRooms();
 }
 
+// ---------- tournaments (server/tour.js) ----------
+// A host's tournament plays every match at a private table of its own (r.tour = { tid, mid }). The table is opened
+// before its players are called, starts by itself once they are all sitting at it (bo3: the next game too, a few
+// seconds after the results), never takes bots or other people in its seats (anyone else may watch), and tells
+// tour.js how each game ended. The host buttons of a normal table do nothing there.
+function openTourTable(T, m) {
+  const r = { code: newCode(), game: T.game, host: null, priv: true, players: [], spect: new Set(), sit: new Set(), G: null, chat: [], created: Date.now(),
+    opts: cleanTableOpts(T.game, T.opts || {}), tour: { tid: T.id, mid: m.id } };
+  rooms.set(r.code, r);
+  return r.code;
+}
+// The players (account ids) sitting at a match table with the page open.
+function tourHere(code) {
+  const r = rooms.get(code), out = new Set(); if (!r) return out;
+  for (const t of r.players) { const c = clients.get(t); if (c?.sock && !r.spect.has(c.id)) { const pid = store.profileOf(t)?.pid; if (pid) out.add(pid); } }
+  return out;
+}
+function tourStart(code, n) {
+  const r = rooms.get(code); if (!r || r.G?.ph === 'play') return;
+  for (const t of r.players) { const c = clients.get(t); if (c && !tour.isPlayer(r.tour.tid, r.tour.mid, store.profileOf(t)?.pid)) r.spect.add(c.id); }
+  const meta = GAMES[r.game].meta, k = seatKey(meta);
+  if (seatChoices(meta).length > 1) r.opts = cleanTableOpts(r.game, { ...r.opts, [k]: n });
+  r.host = clients.get(seatedOf(r)[0])?.id ?? r.host;
+  startGame(r);
+}
+function tourClose(code) {
+  const r = rooms.get(code); if (!r) return;
+  for (const t of [...r.players]) { const c = clients.get(t); if (!c) continue; c.room = null; send(c, { t: 'room', room: null }); c.sock?.send(roomsText()); }
+  rooms.delete(code); broadcastRooms();
+}
+// A game at a match table ended: its places go to the tournament, by account (a player who left mid-game counts too).
+function tourGameOver(r) {
+  const G = r.G, raw = GAMES[r.game].results?.(G), res = raw ? withPlaces(raw) : null;
+  const pidAt = i => { const seat = G.seats[i]; if (seat.human && seat.id) { const c = r.players.map(t => clients.get(t)).find(x => x?.id === seat.id); return store.profileOf(c?.token)?.pid; } return r.leftBy?.get(i)?.pid; };
+  tour.gameOver(r.tour.tid, r.tour.mid, G.seats.map((_, i) => ({ pid: pidAt(i), place: res ? Math.round(res[i].place) || G.seats.length : 1 })).filter(x => x.pid));
+  sendRoom(r);
+}
+tour.setup({
+  metaOf: id => (isGame(id) ? GAMES[id].meta : null), choices: id => seatChoices(GAMES[id].meta),
+  names: id => ({ en: GAMES[id]?.meta.name || id, pl: GAMES_PL[id]?.name || GAMES[id]?.meta.name || id }),
+  open: openTourTable, here: tourHere, start: tourStart, close: tourClose, exists: code => rooms.has(code),
+  playing: code => { const r = rooms.get(code); return !!r?.G && r.G.ph !== 'end'; }, holding: () => notice.holding(),
+  tell: (pid, msg) => { for (const c of clientsOf(pid)) send(c, msg.t === 'me' ? { t: 'me', me: store.me(store.profileOf(c.token)) } : msg); },
+});
+// Every screen keeps the list of open and running tournaments (the hub card, the call to your match, watching).
+let tourT = 0;
+const tourMsg = () => JSON.stringify({ t: 'tour', list: tour.list() });
+tour.setOnChange(() => {
+  if (tourT) return;
+  tourT = setTimeout(() => {
+    tourT = 0; const str = tourMsg();
+    for (const c of clients.values()) c.sock?.send(str);
+    for (const r of rooms.values()) if (r.tour) sendRoom(r);
+  }, 300);
+});
+function tourMsgIn(c, m) {
+  if (!allow('tour:' + c.token, 40, 60_000)) return send(c, { t: 'tour', op: 'err', err: 'Slow down a little.' });
+  const p = store.profileOf(c.token), admin = store.isAdmin(p);
+  if (m.test && process.env.TOUR_TEST) return send(c, { t: 'tour', op: 'test', k: m.test, v: tour.testHook(m.test, m) });
+  const r = tour.handle(p, m, admin);
+  if (r.err) return send(c, { t: 'tour', op: 'err', err: r.err, of: m.op });
+  if (m.op === 'getcfg' && r.cfg) { // the hosts' form: which games can hold a cup, in which formats, and each one's table settings
+    r.games = tour.gamesOk(Object.keys(GAMES));
+    r.defs = Object.fromEntries(Object.keys(r.games).map(id => [id, { ...cleanTableOpts(id, {}), __max: GAMES[id].meta.maxPlayers }]));
+  }
+  if (r.ok && m.op !== 'hist' && m.op !== 'one') console.log(`tour: ${p?.user || p?.name} ${m.op}${m.id ? ' ' + m.id : ''}`);
+  send(c, { t: 'tour', op: 'ok', of: m.op, ...r });
+}
+
 // While a host's ban is on, a screen gets nothing but the ban notice (and may still pick a language).
 const BAN_OK = new Set(['lang', 'where', 'stats', 'notice']);
 function handle(c, m) {
@@ -835,6 +911,7 @@ function handle(c, m) {
       return;
     } // which solo screen (Pet Farm, Hay Hunch) or the hub, for the host's list
     case 'mod': return modMsg(c, m); // reports from players; the hosts' Reports tab (server/mod.js)
+    case 'tour': return tourMsgIn(c, m); // tournaments: signing up, checking in, the hosts' Tournaments tab (server/tour.js)
     case 'who': { // the host's "Who's here" list: only accounts named in ADMINS get it
       if (!store.isAdmin(store.profileOf(c.token))) return;
       if (!allow('who:' + c.token, 30, 60_000)) return;
@@ -866,7 +943,7 @@ function handle(c, m) {
     }
     case 'leave': if (c.room) leaveRoom(c); send(c, { t: 'room', room: null }); c.sock?.send(roomsText()); return;
     case 'opts': {
-      const r = rooms.get(c.room); if (!r || r.host !== c.id || r.G?.ph === 'play' || r.party) return;
+      const r = rooms.get(c.room); if (!r || r.host !== c.id || r.G?.ph === 'play' || r.party || r.tour) return;
       const mod = GAMES[r.game];
       if (m.opts && typeof m.opts === 'object') {
         const k = seatKey(mod.meta), want = m.opts[k];
@@ -878,7 +955,7 @@ function handle(c, m) {
       sendRoom(r); broadcastRooms(); return;
     }
     case 'start': {
-      const r = rooms.get(c.room); if (!r || r.host !== c.id || r.G?.ph === 'play' || r.party) return;
+      const r = rooms.get(c.room); if (!r || r.host !== c.id || r.G?.ph === 'play' || r.party || r.tour) return; // a tournament table starts by itself
       if (notice.holding()) return send(c, { t: 'err', msg: HOLD_MSG });
       // a game without bots (Państwa-miasta) needs enough people in seats, counting watchers who asked for one
       const need = GAMES[r.game].meta.minHumans || 0;
@@ -886,18 +963,18 @@ function handle(c, m) {
       return startGame(r);
     }
     case 'lobby': { // host sends everyone back to the waiting room
-      const r = rooms.get(c.room); if (!r || r.host !== c.id || r.G?.ph === 'play' || r.party) return;
+      const r = rooms.get(c.room); if (!r || r.host !== c.id || r.G?.ph === 'play' || r.party || r.tour) return;
       r.last = r.G; r.G = null; r.hold = null; r.again = new Set(); fillSeats(r); for (const t of r.players) send(clients.get(t), { t: 'state', s: null });
       sendRoom(r); broadcastRooms(); return;
     }
     case 'again': { // vote to play another round (shown to the host on the results screen)
-      const r = rooms.get(c.room); if (!r || r.G?.ph !== 'end' || r.spect.has(c.id) || r.party) return;
+      const r = rooms.get(c.room); if (!r || r.G?.ph !== 'end' || r.spect.has(c.id) || r.party || r.tour) return;
       r.again ||= new Set();
       if (m.on === false) r.again.delete(c.id); else r.again.add(c.id);
       return sendRoom(r);
     }
     case 'sit': { // a watcher wants a seat next round (or takes it back); in the waiting room it is immediate
-      const r = rooms.get(c.room); if (!r) return;
+      const r = rooms.get(c.room); if (!r || r.tour) return; // tournament tables: only the match's players sit down
       if (!r.spect.has(c.id)) return;
       if (m.on === false) r.sit.delete(c.id);
       else {
@@ -1207,6 +1284,7 @@ const onSocket = sock => {
       store.visit(token);
       send(c, { t: 'welcome', token, id: c.id, name: c.name, build: BUILD });
       send(c, noticeFor(c));
+      c.sock.send(tourMsg());
       send(c, statsMsg()); broadcastStats();
       send(c, { t: 'me', me: store.me(store.profileOf(token)) });
       tellStanding(c);
@@ -1229,7 +1307,7 @@ const onSocket = sock => {
 // ---------- persistence ----------
 // Lobbies come back after a restart with their scoreboard and chat. A game that was mid-play is lost:
 // the table returns to its waiting room.
-store.setRoomSource(() => [...rooms.values()].map(r => ({
+store.setRoomSource(() => [...rooms.values()].filter(r => !r.tour).map(r => ({
   code: r.code, game: r.game, host: r.host, priv: r.priv, opts: r.opts, chat: r.chat, created: r.created,
   board: r.board || {}, played: r.played || 0, players: r.players,
   spect: [...r.spect], sit: [...r.sit],
@@ -1260,13 +1338,15 @@ wheel.load();
 notice.load();
 modr.load();
 plaza.load();
+tour.load();
+setInterval(() => { try { tour.tick(); } catch (e) { console.error('tour tick error', e); } }, 1000);
 // Stopping (systemctl restart/stop, Ctrl+C): save everything first, then tell every screen "back in a moment" and
 // close with 1012 (service restart), so pages wait for the server and reconnect on their own. The pause lets the
 // goodbye frames reach the players before the process ends.
 let stopping = false;
 const bye = (code = 0) => {
   if (stopping) return; stopping = true;
-  store.saveNow(true); farm.saveNow(true); hubchat.saveNow(); plaza.saveNow(); modr.saveNow();
+  store.saveNow(true); farm.saveNow(true); hubchat.saveNow(); plaza.saveNow(); modr.saveNow(); tour.saveNow();
   let n = 0;
   for (const c of clients.values()) if (c.sock) { n++; try { c.sock.send({ t: 'bye' }); c.sock.close(1012); } catch {} }
   console.log(`stopping: saved, told ${n} screens to wait for the restart`);

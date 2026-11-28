@@ -55,7 +55,8 @@ export const COS = {
     { n: 'Lamplighter', earn: { g: 'lantern', w: 5 } }, { n: 'Master of Disguise', earn: { g: 'copy', w: 5 } }, { n: 'Blast Master', earn: { g: 'blast', w: 5 } }, { n: 'Runway Star', earn: { g: 'runway', w: 5 } },
     { n: 'Journal Keeper', earn: { pf: 'jn', n: 8 } }, { n: 'Legend Seeker', earn: { pf: 'lg', n: 1 } }, { n: 'Museum Curator', earn: { pf: 'mus', n: 5 } }, { n: 'Order Runner', earn: { pf: 'ord', n: 25 } },
     { n: 'Memory Ace', earn: { g: 'pairs', w: 5 } }, { n: 'Sugar Sieger', earn: { g: 'siege', w: 5 } }, { n: 'Herd Leader', earn: { g: 'herd', w: 5 } }, { n: 'Trail Friend', earn: { g: 'trail', w: 5 } },
-    { n: 'Pop Star', earn: { g: 'pop', w: 30 } }, { n: 'Hay Whisperer', earn: { g: 'hay', w: 20 } }, { n: 'Tile Sage', earn: { g: 'mj', w: 20 } }] }, // the solo games: wins there are levels cleared
+    { n: 'Pop Star', earn: { g: 'pop', w: 30 } }, { n: 'Hay Whisperer', earn: { g: 'hay', w: 20 } }, { n: 'Tile Sage', earn: { g: 'mj', w: 20 } },
+    { n: 'Cup Winner', earn: { tw: 1 } }, { n: 'Tournament Legend', earn: { tw: 5 } }] }, // the solo games: wins there are levels cleared
   wn: { label: 'Win effect', items: [{ n: 'None' }, { n: 'Confetti', p: 150 }, { n: 'Hearts', p: 150 }, { n: 'Fish rain', p: 200 }, { n: 'Fireworks', p: 250 },
     { n: 'Coin shower', p: 300 }, { n: 'Snowfall', p: 180, s: 'winter' }, { n: 'Coffee break', pk: 'kofi' },
     { n: 'Blossoms', p: 180, s: 'spring' }, { n: 'Bubbles', p: 180, s: 'summer' }, { n: 'Bats', p: 180, s: 'halloween' }, { n: 'Paw prints', p: 160 },
@@ -167,6 +168,7 @@ export function earnProgress(it, me) {
   const e = it?.earn; if (!e) return null;
   if (e.top) return [me?.bestPos >= 1 && me.bestPos <= e.top ? 1 : 0, 1, e.top === 1 ? L('reach 1st place in the overall ranking', 'zajmij 1. miejsce w rankingu ogólnym') : L(`reach the top ${e.top} of the overall ranking`, `wejdź do pierwszej ${e.top} rankingu ogólnego`)];
   if (e.pv) return [Math.min(e.pv, (me?.plzDays ?? me?.plz?.days) | 0), e.pv, L(`visit the Plaza on ${e.pv} different days`, `odwiedź Plac w ${e.pv} różnych dniach`)];
+  if (e.tw) return [Math.min(e.tw, me?.tw | 0), e.tw, e.tw === 1 ? L('win a tournament', 'wygraj turniej') : L(`win ${e.tw} tournaments`, `wygraj ${e.tw} turniejów`)];
   if (e.pf) return [Math.min(e.n, me?.pf?.[e.pf] | 0), e.n, PF_GOAL[e.pf](e.n)];
   if (e.sp) return [Math.min(e.sp, me?.petSp | 0), e.sp, L(`${e.sp} pet species in your Pet Farm album`, `${e.sp} gatunków zwierzaków w albumie Farmy zwierzaków`)];
   if (e.d) return [Math.min(e.d, me?.daily?.best || 0), e.d, L(`${e.d} Mystery Pets solved in a row`, `Zagadkowy zwierzak odgadnięty ${e.d} dni z rzędu`)];
