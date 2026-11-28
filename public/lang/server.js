@@ -7,6 +7,32 @@ import { PL, plForm } from '../i18n.js';
 const TEXT = {
   // Lantern Night
   'The chat opens at meetings. Talk on voice, or find a sleeper and ring the bell.': 'Czat otwiera się na naradach. Rozmawiajcie na głosowym albo znajdź śpiocha i zadzwoń dzwonem.',
+  // tournaments (tour.js)
+  'A host took you out of this tournament.': 'Gospodarz wypisał cię z tego turnieju.',
+  'A match after this one has already started.': 'Mecz po tym już się zaczął.',
+  'Cancel the tournament first.': 'Najpierw odwołaj turniej.',
+  'Check-in opens 15 minutes before the start.': 'Potwierdzanie obecności zaczyna się 15 minut przed startem.',
+  'Give the tournament a name.': 'Nadaj turniejowi nazwę.',
+  'Make an account to play in tournaments.': 'Załóż konto, żeby grać w turniejach.',
+  'Paste the Discord webhook link first.': 'Najpierw wklej link webhooka z Discorda.',
+  'Pick a game that can be played as a tournament.': 'Wybierz grę, w którą da się rozegrać turniej.',
+  'Pick a start time in the future.': 'Wybierz godzinę startu w przyszłości.',
+  'Pick one of the two players.': 'Wybierz jednego z dwóch graczy.',
+  'Sign up first.': 'Najpierw się zapisz.',
+  'Sign-ups for this tournament are closed.': 'Zapisy na ten turniej są zamknięte.',
+  'That game can’t be played in that format.': 'W tę grę nie da się grać w tym formacie.',
+  'That is not a Discord channel webhook link.': 'To nie jest link webhooka kanału na Discordzie.',
+  'That match can’t be decided now.': 'Tego meczu nie da się teraz rozstrzygnąć.',
+  'That match can’t be played again now.': 'Tego meczu nie da się teraz powtórzyć.',
+  'That match is not waiting for you.': 'Ten mecz na ciebie nie czeka.',
+  'That player is not in this tournament.': 'Tego gracza nie ma w tym turnieju.',
+  'That tournament is not here any more.': 'Tego turnieju już tu nie ma.',
+  'That was a bye: there is nothing to replay.': 'To był wolny los: nie ma czego powtarzać.',
+  'The start can be at most 60 days away.': 'Start może być najwyżej za 60 dni.',
+  'The tournament has started. Ask a host if you can’t play.': 'Turniej już trwa. Jeśli nie możesz grać, napisz do gospodarza.',
+  'This tournament has already started.': 'Ten turniej już się zaczął.',
+  'This tournament is full.': 'Ten turniej jest pełny.',
+  'You already asked for more time in this match.': 'W tym meczu twoja prośba o więcej czasu już była.',
   // the plaza
   'Log in or make an account to hang an ornament.': 'Zaloguj się albo załóż konto, żeby zawiesić ozdobę.',
   'Walk up to the tree first.': 'Najpierw podejdź do choinki.',
@@ -114,6 +140,7 @@ const SEASON = { 'Winter drop': 'kolekcji zimowej', 'Spring drop': 'kolekcji wio
 const BACK = { 'mid-November': 'w połowie listopada', March: 'w marcu', June: 'w czerwcu', October: 'w październiku' };
 // [pattern, how to say it]: the function gets the captured pieces.
 const FORMS = [
+  [/^You need level (.+) to sign up for this tournament\.$/, n => `Do zapisu na ten turniej potrzeba poziomu ${n}.`],
   [/^That is part of the (.+)\. It is back in (.+)\.$/, (s, b) => `To część ${SEASON[s] || s}. Wraca ${BACK[b] || b}.`],
   [/^You already asked (.+)\.$/, u => `Zaproszenie do gracza ${u} jest już wysłane.`],
   [/^You and (.+) are already friends\.$/, u => `Ty i ${u} już jesteście znajomymi.`],

@@ -25,7 +25,8 @@ import { fitw } from './fit.js';
 import { morph } from './morph.js';
 import { gfx, gfxPick, setGfx, onGfxTip, SOFT } from './frames.js';
 import { PEEKS, peekPick, setPeek, setPeekHost, WX_PEEKS, wxPeekPick, setWxPeek, peekWeather, skyHour } from './seasonpeek.js';
-import { initNotice, onNotice } from './notice.js';
+import { initNotice, onNotice, setStrip } from './notice.js';
+import { initTour, onTour, tourBanHtml, openTour, tourLobbyHtml, tourRefresh } from './tour.js';
 import { initAdmin, openAdmin, openModerate, openReport, onMod, onModMe, muteNote, openCount as modOpenCount } from './admin.js';
 import { L, PL, LANG, LOCALE, cnt, word, num, ord, setLang, onLangSwitch, picked } from './i18n.js';
 import { WEATHER, weatherAt, weatherNext, wxIcon, isNight as wxNight, skyPhase, WX_LOOK, sunHour } from './weather.js';
@@ -1264,7 +1265,7 @@ function onMsg(m) {
     openPlayer(m.p);
   } else if (m.t === 'me') {
     if (st.me?.user !== m.me.user && st.view === 'hub') send({ t: 'plaza', a: { k: 'peek' } }); // logged in or out: the plaza marker is per account
-    st.skyWas = st.me?.user === m.me.user ? st.me.sky : null; st.me = m.me; st.meAt = Date.now(); setMyFx(flairOf(m.me).wn | 0);
+    st.skyWas = st.me?.user === m.me.user ? st.me.sky : null; st.me = m.me; st.meAt = Date.now(); setMyFx(flairOf(m.me).wn | 0); if (m.me.pt !== st.mePt) { st.mePt = m.me.pt; tourRefresh(); }
     // Logged in: the look saved with the account is the only truth. Wear it (and keep it in this browser) before
     // anything else, the language reload below included, so an old guest look here can never be sent back over it.
     let adopted = false;
@@ -1337,6 +1338,8 @@ function onMsg(m) {
   } else if (m.t === 'mod') { onMod(m);
   } else if (m.t === 'notice') {
     onNotice(m);
+  } else if (m.t === 'tour') {
+    onTour(m); if (m.list && wantTour) { openTour(wantTour); wantTour = ''; }
   } else if (m.t === 'who') {
     st.who = m.list || []; paintWho();
   } else if (m.t === 'auth') {
@@ -1889,6 +1892,9 @@ function openWheel() {
 
 // ---------- views ----------
 // /?gra=<id> comes from a game's own page (server/gamepages.js): the hub scrolls to that game's card and lights it up.
+// /?t=<id> comes from a tournament's Discord post: the tournament page opens as soon as the list is in.
+let wantTour = (() => { try { const t = new URLSearchParams(location.search).get('t') || ''; return /^\w{1,24}$/.test(t) ? t : ''; } catch { return ''; } })();
+if (wantTour) history.replaceState(null, '', location.pathname + location.hash);
 let wantGame = (() => { try { return new URLSearchParams(location.search).get('gra') || ''; } catch { return ''; } })();
 if (wantGame) history.replaceState(null, '', location.pathname + location.hash);
 function showWanted() {
@@ -2432,6 +2438,7 @@ function renderHub() {
     </section>
     <div class="hubmid">
     <section id="games">
+      <div id="tourban-slot">${tourBanHtml()}</div>
       ${partyBanHtml()}
       <div class="ghead">
         <h2>${L('Games', 'Gry')}</h2>
@@ -2467,7 +2474,7 @@ function renderHub() {
         <div class="today" id="today-list">${todayHtml()}</div>
       </section>
       <section id="rankings">
-        <div class="sidehead"><h2>${L('Rankings', 'Rankingi')}</h2></div>
+        <div class="sidehead"><h2>${L('Rankings', 'Rankingi')}</h2><button type="button" class="plazalink" data-tour="hist">🏆 ${L('Tournaments', 'Turnieje')} ›</button></div>
         <div class="rkcard">
           <select id="rk-sel" class="field rksel" aria-label="${L('Rankings for', 'Ranking gry')}">${RK_TABS.map(([id, n]) => `<option value="${id}"${id === st.rkTab ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>
           <div id="rk-body">${rankingsHtml(narrow())}</div>
@@ -2728,10 +2735,17 @@ function botSeatsHtml(r, gm, host, seatedN) {
   return `<div class="row botseats" style="gap:10px;align-items:center"><span style="color:var(--muted)">${msg}</span>${host && fit ? `<button type="button" class="btn m" data-act="opt" data-opt="${r.seatKey || 'seats'}" data-val="${seatedN}">${L(`Play with ${seatedN}, no bots`, `Gramy w ${seatedN}, bez botów`)}</button>` : ''}</div>`;
 }
 
+// The hosts' tournament form shows a game's own table settings; bot settings are left out (tournaments have no bots).
+function tourSettingsHtml(game, opts, locked = false) {
+  const gm = GAMES[game]; if (!gm?.settings) return '';
+  const pill = (opt, val, label) => `<button type="button" aria-pressed="${String(opts[opt]) === String(val)}" ${locked ? ' disabled' : ` data-topt="${opt}" data-tval="${val}"`}>${optText(String(label), game).replace(/^(\d+) hands$/, '$1 rozdań')}</button>`;
+  let h = ''; try { h = gm.settings(pill, { game, opts, players: [], priv: true, max: opts.__max || 8 }); } catch { return ''; }
+  return h.replace(/<div class="opt"><b>Bots?( cooks)?<\/b><div class="pills">[\s\S]*?<\/div><\/div>/g, '').replace(/<b>([^<]+)<\/b>/g, (m, x) => `<b>${optText(x)}</b>`);
+}
 function renderLobby() {
   document.body.classList.add('sky');
   const r = st.room; if (!r) return go('hub');
-  const host = r.host === st.id, gm = GAMES[r.game] || GAMES.hotpot, max = r.size || r.max;
+  const T = r.tour, host = !T && r.host === st.id, gm = GAMES[r.game] || GAMES.hotpot, max = T ? T.p.length : r.size || r.max; // T: a tournament match table, run by the site
   const seated = r.players.filter(p => !p.watch);
   const seats = Array.from({ length: max }, (_, i) => seated[i] || null);
   const watchers = [...seated.slice(max), ...r.players.filter(p => p.watch)];
@@ -2741,7 +2755,7 @@ function renderLobby() {
   <main class="wrap lobby">
     <div class="main">
       <div class="crumb">${siteLogo(34)} ${esc(gm.name || r.gameName)} · ${L('waiting room', 'poczekalnia')}</div>
-      <div class="row" style="gap:22px">
+      ${T ? tourLobbyHtml(r) : ''}<div class="row" style="gap:22px"${T ? ' hidden' : ''}>
         <div><div style="font-size:15px;color:var(--muted);margin-bottom:6px">${L('Table code', 'Kod stołu')}</div>
           <div class="codetiles" aria-label="${L('Table code', 'Kod stołu')} ${esc(r.code)}">${[...r.code].map(ch => `<span>${esc(ch)}</span>`).join('')}</div></div>
         <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-start">
@@ -2753,12 +2767,12 @@ function renderLobby() {
       <div class="seats">${seats.map((p, i) => p ? `<div class="seat full ${p.online ? '' : 'offline'}${cardBgCls(p.fl)}" data-pid="${esc(p.id)}"${prof(p)}>
           ${cardBg(p.fl)}${avatarHtml(p.color, p.av, 64, frameCls(p.fl))}${petImg(p.pet, 52)}
           <div><b>${nameHtml(p.name, p.fl)} ${p.lv ? lvChip(p.lv, p.cn) : ''}</b>${titleHtml(p.fl)}<span>${p.id === r.host ? L('Host', 'Gospodarz') : L('Ready', 'W gotowości')}${p.id === st.id ? L(' · you', ' · ty') : ''}${p.online ? '' : L(' · reconnecting', ' · łączy się ponownie')}</span></div></div>`
-        : `<div class="seat open">${backSvg('width="56" height="56"')}<div><b>${L(`Seat ${i + 1} is open`, `Miejsce ${i + 1} wolne`)}</b><span>${gm.openSeat}</span></div></div>`).join('')}</div>
-      ${botSeatsHtml(r, gm, host, Math.min(seated.length, max))}
+        : `<div class="seat open">${backSvg('width="56" height="56"')}<div><b>${T ? L('Waiting for a player', 'Czekamy na gracza') : L(`Seat ${i + 1} is open`, `Miejsce ${i + 1} wolne`)}</b><span>${T ? L('No bots in tournaments: the match starts when everyone is here.', 'W turniejach nie ma botów: mecz zacznie się, gdy wszyscy przyjdą.') : gm.openSeat}</span></div></div>`).join('')}</div>
+      ${T ? '' : botSeatsHtml(r, gm, host, Math.min(seated.length, max))}
       ${watchers.length ? `<p style="margin:0;color:var(--muted)">${L('Watching', 'Oglądają')}: ${watchers.map(p => nameHtml(p.name, p.fl)).join(', ')}</p>` : ''}
-      ${meWatch ? `<div class="row"><button type="button" class="btn m" data-act="sit" aria-pressed="${saving}">${saving ? L('✓ Next free seat is yours', '✓ Następne wolne miejsce jest twoje') : L('Take a seat', 'Zajmij miejsce')}</button></div>` : ''}
+      ${meWatch && !T ? `<div class="row"><button type="button" class="btn m" data-act="sit" aria-pressed="${saving}">${saving ? L('✓ Next free seat is yours', '✓ Następne wolne miejsce jest twoje') : L('Take a seat', 'Zajmij miejsce')}</button></div>` : ''}
       <div class="row" style="margin-top:6px">
-        ${host && seated.length < (gm.min || 1) ? `<span class="chip">${L(`You need ${gm.min} players to start. Send the invite link to a friend.`, `Do startu potrzeba ${gm.min} graczy. Wyślij znajomemu link z zaproszeniem.`)}</span>`
+        ${T ? '' : host && seated.length < (gm.min || 1) ? `<span class="chip">${L(`You need ${gm.min} players to start. Send the invite link to a friend.`, `Do startu potrzeba ${gm.min} graczy. Wyślij znajomemu link z zaproszeniem.`)}</span>`
           : host ? `<button type="button" class="btn big r" data-act="start">${gm.start}</button>` : `<span class="chip">${L('Waiting for the host to start…', 'Czekamy, aż gospodarz zacznie…')}</span>`}
         <button type="button" class="btn big ghost" data-act="leave">${L('Leave', 'Wyjdź')}</button>
       </div>
@@ -2767,10 +2781,10 @@ function renderLobby() {
       <h2 style="font-size:26px;margin:0">${L('Table scoreboard', 'Wyniki stołu')}</h2>
       ${boardHtml(r)}
       <h2 style="font-size:26px;margin:0">${L('Table settings', 'Ustawienia stołu')}</h2>
-      ${seatOptHtml(r, gm, host, Math.min(seated.length, max))}
-      ${gm.settings(pill, r).replace(/<b>([^<]+)<\/b>/g, (m, s) => `<b>${optText(s)}</b>`)}
-      <label class="toggle">${L('Show in open tables', 'Pokaż wśród otwartych stołów')}<input type="checkbox" data-act="priv" ${r.priv ? '' : 'checked'} ${host ? '' : 'disabled'}></label>
-      ${host ? '' : `<p style="margin:0;font-size:14px;color:var(--muted)">${L('Only the host can change settings.', 'Ustawienia może zmieniać tylko gospodarz.')}</p>`}
+      ${T ? '' : seatOptHtml(r, gm, host, Math.min(seated.length, max))}
+      ${T ? tourSettingsHtml(r.game, r.opts, true) : gm.settings(pill, r).replace(/<b>([^<]+)<\/b>/g, (m, s) => `<b>${optText(s)}</b>`)}
+      ${T ? `<p style="margin:0;font-size:14px;color:var(--muted)">${L('A tournament table: every match is played with the same settings.', 'Stół turniejowy: każdy mecz ma te same ustawienia.')}</p>` : `<label class="toggle">${L('Show in open tables', 'Pokaż wśród otwartych stołów')}<input type="checkbox" data-act="priv" ${r.priv ? '' : 'checked'} ${host ? '' : 'disabled'}></label>`}
+      ${host || T ? '' : `<p style="margin:0;font-size:14px;color:var(--muted)">${L('Only the host can change settings.', 'Ustawienia może zmieniać tylko gospodarz.')}</p>`}
       <div class="howto"><b>${L('How to win', 'Jak wygrać')}</b><br>${gm.howto} <a href="#" data-act="rules">${L('Full rules', 'Pełne zasady')}</a></div>
     </aside>
   </main>`;
@@ -2788,7 +2802,7 @@ $watch.id = 'watchbar'; $watch.hidden = true; $watch.setAttribute('aria-live', '
 document.body.append($watch);
 function watchPaint() {
   const r = st.room, me = r?.players.find(p => p.id === st.id);
-  const on = !!(st.game && me?.watch && st.lastState?.ph === 'play');
+  const on = !!(st.game && me?.watch && st.lastState?.ph === 'play' && !r.tour); // tournament tables: watchers only watch
   $watch.hidden = !on; if (!on) return;
   // When a watcher gets in depends on the game: Hot Pot and Marble Rush at the next game,
   // Snakes & Ladders and Ludo when the current round of turns ends, poker at the next hand.
@@ -3714,6 +3728,9 @@ onGfxTip(kind => toast(kind === 'soft'
   : L('The game can’t keep up even on low graphics. If you use Opera GX, check that GX Control’s CPU and RAM limiters are off and no page shader mod is on.', 'Gra nie nadąża nawet na niskiej grafice. Jeśli używasz Opery GX, sprawdź, czy limity procesora i RAM w GX Control są wyłączone i czy nie działa mod z shaderem strony.'), false, 10000));
 go('hub');
 initNotice({ send, modal, toast, sfx, me: () => st.me, inGame: () => !!st.game });
+initTour({ send, modal, toast, sfx, srvText, setStrip, avatarHtml, me: () => st.me, room: () => st.room, gameName: id => GAMES[id]?.name || id,
+  join: code => { if (st.room?.code === code) { if (st.view !== 'game') go(st.game ? 'game' : 'lobby'); return; } send({ t: 'join', code }); },
+  openPlayer: pt => send({ t: 'player', pt }), needAccount: () => openAccount('register'), settingsHtml: tourSettingsHtml });
 initAdmin({ send, modal, toast, sfx, srvText, me: () => st.me, avatarHtml, gameName: id => GAMES[id]?.name || SOLO[id]?.name || id, whoMount,
   onCount: () => { for (const b of document.querySelectorAll('.admcount')) { const n = modOpenCount(); b.hidden = !n; b.textContent = n || ''; } },
   onPeek: k => { if (k === 'sky') { paintSkyWx(); heroMod?.then(m => m.setHeroSky?.(skyPhase(skyHour()))).catch(() => {}); import('./scenery3d.js').then(m => m.setScenesNight()).catch(() => {}); } else if (k === 'weather') { paintSkyWx(); import('./weather3d.js').then(m => m.wxRecheck()).catch(() => {}); } else toast(`${L('Island season', 'Pora roku wysp')}: ${esc(peekLabel())}. ${L('Games opened from now on use it.', 'Obowiązuje w grach otwartych od teraz.')}`); } });

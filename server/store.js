@@ -323,7 +323,7 @@ export function byTag(tag) {
 export function publicProfile(p) {
   const games = Object.entries(p.byGame || {}).filter(([, g]) => g?.games).map(([g, x]) => ({ g, games: x.games, wins: x.wins || 0, best: x.best || 0 }))
     .sort((a, b) => b.wins - a.wins || b.games - a.games).slice(0, 4);
-  return { pt: tagOf(p), name: p.name || 'Guest', color: p.color, av: p.av, fl: flair(p), guest: !p.user, ...badge(p), xp: p.xp || 0, games: p.games || 0, wins: p.wins || 0, top: games, sky: { lit: skyOf(p).lit } };
+  return { pt: tagOf(p), name: p.name || 'Guest', color: p.color, av: p.av, fl: flair(p), guest: !p.user, ...badge(p), xp: p.xp || 0, games: p.games || 0, wins: p.wins || 0, top: games, sky: { lit: skyOf(p).lit }, ...(p.tp ? { tw: p.tw || 0, tp: p.tp } : {}) };
 }
 // What other players see of this profile's cosmetics: { nm, fr, ti, wn } with unset ones left out.
 export const flair = p => {
@@ -393,7 +393,7 @@ export const SHOP_SIZE = Object.keys(PRICE).length;
 
 // What a player sees about themselves.
 export function me(p) {
-  return { user: p.user, lang: p.lang || '', name: p.name, color: p.color, av: p.av, games: p.games, wins: p.wins, pts: p.pts, byGame: p.byGame, coins: p.coins || 0, owned: p.owned || [], cos: p.cos || {}, fits: p.fits || [], gw: p.gw || null, daily: { best: p.daily?.best || 0 }, bestPos: p.bestPos || 0, petSp: p.petSp || 0, pf: p.pf || {}, plzDays: p.plz?.days || 0, today: shopDate(), next: untilNext(), pt: tagOf(p), hay: { lv: p.hay?.lv || 1, paid: p.hay?.day === dayOf() ? p.hay.paid || 0 : 0 }, pop: { lv: p.pop?.lv || 1, paid: p.pop?.day === dayOf() ? p.pop.paid || 0 : 0 }, mj: { lv: p.mj?.lv || 1, paid: p.mj?.day === dayOf() ? p.mj.paid || 0 : 0 }, ...(isAdmin(p) ? { admin: true } : {}), ...progress(p.xp), sky: skyOf(p) };
+  return { user: p.user, lang: p.lang || '', name: p.name, color: p.color, av: p.av, games: p.games, wins: p.wins, pts: p.pts, byGame: p.byGame, coins: p.coins || 0, owned: p.owned || [], cos: p.cos || {}, fits: p.fits || [], gw: p.gw || null, daily: { best: p.daily?.best || 0 }, bestPos: p.bestPos || 0, petSp: p.petSp || 0, pf: p.pf || {}, tw: p.tw || 0, tp: p.tp || 0, plzDays: p.plz?.days || 0, today: shopDate(), next: untilNext(), pt: tagOf(p), hay: { lv: p.hay?.lv || 1, paid: p.hay?.day === dayOf() ? p.hay.paid || 0 : 0 }, pop: { lv: p.pop?.lv || 1, paid: p.pop?.day === dayOf() ? p.pop.paid || 0 : 0 }, mj: { lv: p.mj?.lv || 1, paid: p.mj?.day === dayOf() ? p.mj.paid || 0 : 0 }, ...(isAdmin(p) ? { admin: true } : {}), ...progress(p.xp), sky: skyOf(p) };
 }
 // The little badge other players see next to a name.
 export function badge(p) { const g = progress(p?.xp || 0), cn = g.stars ? skyOf(p).shown : ''; return { lv: g.level, rank: g.rank, icon: g.icon, stars: g.stars, ...(cn ? { cn } : {}) }; }
