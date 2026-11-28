@@ -433,12 +433,12 @@ const GAMES = {
       <div class="opt"><b>Field</b><div class="pills">${pill('size', 'big', 'Big 10×10')}${pill('size', 'small', 'Quick 8×8')}</div></div>
       <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>
       <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 15, '15s')}${pill('timer', 25, '25s')}${pill('timer', 0, 'Off')}</div></div>`,
-    howto: `A grass field hides gems, a golden chest and traps. Take turns digging one tile. Empty tiles show how many traps are touching them, like Minesweeper, and sparkle when a gem is buried next door. Find a gem and you dig again; hit a trap and you lose points. Most points when the last gem is found wins.`,
+    howto: `A grass field hides gems, a golden chest and traps. Take turns digging one tile. Empty tiles show how many traps are touching them, like Minesweeper. A tile you dig yourself also gets a star if a gem is buried somewhere close. Find a gem and you dig again; hit a trap and you lose points. Most points when the last gem is found wins.`,
     rules: `<ol>
       <li>The field is covered in grass. Under it are <b>gems</b> (1 point), <b>big gems</b> (3), one <b>golden chest</b> (5) and some <b>traps</b>. The middle starts dug open. Empty seats are played by bots.</li>
       <li>On your turn, <b>dig one grass tile</b>. On a computer, click it. On a phone, tap it once to pick it and again to dig.</li>
       <li>An empty tile shows a <b>number</b>: how many traps touch it, sideways or corner to corner. No number means no traps around it, and its empty neighbours open by themselves.</li>
-      <li>A <b>sparkle</b> on an empty tile means a gem is still buried right next to it.</li>
+      <li>An empty tile you <b>dig yourself</b> gets a <b>star</b> if a gem is still buried within two tiles of it, anywhere in the 5×5 square round it. An empty star outline means no gem in that square. Tiles that open by themselves get no star.</li>
       <li>Dig up a gem or the chest and you <b>dig again</b>. An empty tile ends your turn.</li>
       <li>A <b>trap</b> takes <b>4 points</b> (never below zero) and ends your turn.</li>
       <li>When the <b>last gem</b> is found, the game ends and the field is shown. <b>Most points wins</b>. A tie goes to whoever found more, then whoever hit fewer traps.</li>

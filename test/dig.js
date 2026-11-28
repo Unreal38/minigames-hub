@@ -2,7 +2,7 @@
 // under the grass is ever sent before it is dug), measures the bots, then plays a table over the real server.
 import { spawn } from 'node:child_process';
 import * as td from '../server/games/dig.js';
-import { KIND, SIZES, around, isGem } from '../public/games/dig/rules.js';
+import { KIND, SIZES, HINT, around, near, isGem } from '../public/games/dig/rules.js';
 
 const fail = m => { console.error('FAIL', m); process.exit(1); };
 const players = [{ id: 'a', name: 'Ana', color: '#ff8fab', av: [0, 0, 0, 0] }, { id: 'b', name: 'Bo', color: '#7ed3b2', av: [1, 1, 1, 1] }];
@@ -76,6 +76,21 @@ play({ seats: 2, timer: 0 });
 // a human who always digs the first grass tile they see (they will hit traps)
 play({ seats: 3 }, (G, s) => { if (!td.act(G, s, { t: 'dig', i: G.open.indexOf(0) })) fail('dig refused'); });
 
+{ // stars: only on empty tiles dug by hand, and only when a gem is still buried within HINT.reach of them
+  for (let g = 0; g < 30; g++) {
+    const G = td.create([], { seats: 3 }); let now = Date.now(), hand = new Set();
+    for (let k = 0; k < 200 && G.ph === 'play'; k++) {
+      now += 5000;
+      if (G.stage === 'turn' && G.turn >= 0) { td._bot(G, G.turn, now); hand.add(G.dig.i); } else td.tick(G, now);
+      const V = td.view(G, 0), gl = new Set(V.glint);
+      V.tiles.forEach((v, i) => {
+        const want = v >= 0 && v <= 8 && hand.has(i) && near(i, G.w, G.h, HINT.reach).some(j => V.tiles[j] < 0 && isGem(G.cells[j]));
+        if (want !== gl.has(i)) fail('star wrong on tile ' + i);
+        if (V.lit.includes(i) !== (v >= 0 && v <= 8 && hand.has(i))) fail('lit wrong on tile ' + i);
+      });
+    }
+  }
+}
 { // sharp bots should beat chill ones, and games should not drag
   const realNow = Date.now; let now = realNow(); Date.now = () => now;
   let sharp = 0, digs = 0, traps = [0, 0], ptsSum = [0, 0]; const N = 300;

@@ -118,10 +118,10 @@ export function createScene(canvas, { onFrame } = {}) {
 
   // paint the dug ground from what is shown
   let paintKey = '';
-  function paint(tiles, by, glint, all, colors) {
-    const key = tiles.map((t, i) => (shownHidden[i] ? 'h' : t)).join() + '|' + glint.join() + '|' + (all ? 1 : 0);
+  function paint(tiles, by, glint, lit, all, colors) {
+    const key = tiles.map((t, i) => (shownHidden[i] ? 'h' : t)).join() + '|' + glint.join() + '|' + lit.join() + '|' + (all ? 1 : 0);
     if (key === paintKey) return; paintKey = key;
-    const g = gcv.getContext('2d'), gl = new Set(glint);
+    const g = gcv.getContext('2d'), gl = new Set(glint), li = new Set(lit);
     g.fillStyle = '#6b4a2f'; g.fillRect(0, 0, gcv.width, gcv.height);
     for (let i = 0; i < w * h; i++) {
       const x = (i % w) * PX, y = ((i / w) | 0) * PX, cxp = x + PX / 2, cyp = y + PX / 2;
@@ -146,6 +146,7 @@ export function createScene(canvas, { onFrame } = {}) {
         else bombIcon(g, cxp, cyp + 6, PX * .2); // the end of the game: traps nobody stepped on
       }
       if (!hid && gl.has(i)) { g.fillStyle = '#ffd84a'; g.strokeStyle = INK; g.lineWidth = 3; sparklePath(g, x + PX - 18, y + 18, 13); g.fill(); g.stroke(); }
+      else if (!hid && li.has(i)) { g.strokeStyle = '#6b4a2f'; g.lineWidth = 4; sparklePath(g, x + PX - 18, y + 18, 12); g.stroke(); } // dug by hand, no gem close by
     }
     g.strokeStyle = '#00000022'; g.lineWidth = 2;
     for (let x = 0; x <= w; x++) { g.beginPath(); g.moveTo(x * PX, 0); g.lineTo(x * PX, h * PX); g.stroke(); }
@@ -344,7 +345,7 @@ export function createScene(canvas, { onFrame } = {}) {
       for (const [i, at] of pops) { const p = (t - at) / 1000; if (p > .45) pops.delete(i); else if (p >= 0 && p - dt < 0) pfx.puff(tilePos(i, .3, tv), { n: 3, color: ['#7cc45a', '#d6a46c'], size: .2, speed: 1.2 }); }
       setGrass();
     } else if (S && shownHidden.length) setGrass();
-    paint(S.tiles, S.by, S.glint, S.ph === 'end' ? S.all : null, S.seats.map(p => p.color));
+    paint(S.tiles, S.by, S.glint, S.lit || [], S.ph === 'end' ? S.all : null, S.seats.map(p => p.color));
     // sparkles over tiles next to buried gems, now and then
     if (S.glint.length && Math.random() < dt * 2.5) { const i = S.glint[Math.random() * S.glint.length | 0]; if (!shownHidden[i]) pfx.sparkle(tilePos(i, .15, tv).add(new THREE.Vector3(.3, 0, -.3)), { n: 2, colors: ['#fff1a8', '#ffd84a'], r: .2, size: .14 }); }
     // the cursor
