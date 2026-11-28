@@ -121,7 +121,7 @@ export function tagPlacer(box) {
 
   function place(items) {
     const now = performance.now(); if (now > until) measure(now);
-    const heads = headSpots().map(h => ({ x: h.x + ox, y: h.y + oy, r: h.r, root: h.root }));
+    const heads = headSpots().map(h => ({ x: h.x + ox, y: h.y + oy, r: h.r, top: (h.top ?? h.y - h.r) + oy, root: h.root }));
     const narrow = vw < 700, placed = [], taken = new Set();
     // the play areas in this box's pixels (a scene that stopped sending them has none)
     const Z = now - zoneAt < 1000 ? zones.map(z => ({ P: z.P.map(([x, y]) => [x + ox, y + oy]), x0: z.x0 + ox, x1: z.x1 + ox, y0: z.y0 + oy, y1: z.y1 + oy })) : [];
@@ -150,10 +150,10 @@ export function tagPlacer(box) {
       if (!s.w) { s.w = t.el.offsetWidth; s.h = t.el.offsetHeight; }
       const k = (t.k || 1) * zoom;
       // the head, or (for a frame where it is hidden) where it was last seen next to this tag's point
-      if (hd) { s.hox = hd.x - t.x; s.hoy = hd.y - t.y; s.hr = hd.r; }
+      if (hd) { s.hox = hd.x - t.x; s.hoy = hd.y - t.y; s.hr = hd.r; s.ht = hd.y - hd.top; }
       const hx = t.x + (s.root ? s.hox : 0), hy = t.y + (s.root ? s.hoy : 0), hr = s.root ? s.hr : 0, w = s.w * k, h = s.h * k;
       // above; beside (right, left); above but leaning right or left; a row higher (players huddled together)
-      const up = hy - hr - GAP - h;
+      const up = hy - (s.root ? s.ht : 0) - GAP - h; // just over the hair
       const cands = [
         [hx - w / 2, up, 0],
         [hx + hr + GAP, hy - h / 2 - hr * .15, 1],
