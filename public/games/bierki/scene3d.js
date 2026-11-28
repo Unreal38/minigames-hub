@@ -6,6 +6,7 @@ import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { youArrow, animateArrow, disposeArrow } from '../../marker3d.js';
 import { toonify, toonMat, skyDome, clouds as cloudSea, island, birds, petals, createFx, disposeToon, STAR, DOT, nightScene } from '../../scenery3d.js';
 import { LEN, R, MM, REACH, LIFT_MAX, KINDS, PETS, colOf, ends } from './rules.js';
+import { playArea, disc as rimPts } from '../../nametag.js';
 
 const FALL = '#ff3d9a', TOUCHC = '#ff9a1f', RIM = { sel: 1.4, hover: 1.35, fall: 1.25, touch: 1.25 }; // at-risk sticks glow pink, the picked one gold
 const INK = '#3b2219', SKY_TOP = '#6fbdf2', SKY_LOW = '#d6f1ff', FLOOR = -1.75, AVS = .95;
@@ -212,6 +213,7 @@ export function createScene(canvas, cb = {}) {
   const orb = { yaw: 0, el: .93, zoom: 1, tyaw: 0, tel: .93, tzoom: 1 };
   const look = new THREE.Vector3(0, .1, 0);
   let W = 0, Hh = 0, shadowIn = 0, camKey = '', padTop = 0, padBot = 0, fitDist = 14;
+  const playTop = rimPts(TR, -.05, { h: .5 }); // the table with the sticks: name tags keep off it
   function resize() {
     const w = canvas.clientWidth, h = canvas.clientHeight;
     if (w === W && h === Hh) return;
@@ -397,6 +399,7 @@ export function createScene(canvas, cb = {}) {
       p.tag.show = proj.z < 1 && Math.abs(proj.x) < 1.1 && Math.abs(proj.y) < 1.1;
       p.tag.x = (proj.x + 1) / 2 * W; p.tag.y = (1 - proj.y) / 2 * Hh;
     }
+    playArea(camera, W, Hh, playTop);
     cb.onFrame?.({ tags: players.map(p => p.tag) });
   }
   const ticker = frameLoop(loop, { onSlow: () => res.lower() });

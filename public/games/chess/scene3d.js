@@ -6,6 +6,7 @@ import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js'
 import { toonify, skyDome, clouds, island, birds, petals, createFx, shaker, nightScene, roundDeck } from '../../scenery3d.js';
 import { frameLoop, autoResolution } from '../../frames.js';
 import { hudFitOk, easeRefit } from '../../camfit.js';
+import { playArea } from '../../nametag.js';
 
 const SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
 import { chessLook } from '../../pieceskins.js';
@@ -357,6 +358,7 @@ export function createScene(canvas, { onFrame } = {}) {
   let T = 0, dead = false, lastNow = 0;
   const tv = new THREE.Vector3();
   const info = { tags: [] };
+  const playBox = new THREE.Box3(new THREE.Vector3(-B / 2, TOP, -B / 2), new THREE.Vector3(B / 2, TOP + .75, B / 2)); // the squares and the pieces standing on them
   function loop(dt, now) {
     if (dead) return;
     resize();
@@ -391,6 +393,7 @@ export function createScene(canvas, { onFrame } = {}) {
       tv.set(s.x, 2.45, s.z).project(camera); t.x = (tv.x + 1) / 2 * W; t.y = (1 - tv.y) / 2 * H;
     });
     info.tags.length = seats.length;
+    playArea(camera, W, H, playBox);
     onFrame?.(info);
   }
   const ticker = frameLoop(loop, { onSlow: () => res.lower() });

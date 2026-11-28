@@ -9,6 +9,7 @@ import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, sha
 import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { hudFitOk } from '../../camfit.js';
 import { paintFace, paintBack, petImage, loaded, W as TW, H as TH } from './cards.js';
+import { playArea } from '../../nametag.js';
 
 const SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
 const CW = .8, CH = CW * TH / TW;  // card size
@@ -312,6 +313,7 @@ export function createScene(canvas, { onFrame } = {}) {
   let T = 0, dead = false, lastNow = 0;
   const tv = new THREE.Vector3();
   const info = { tags: [] };
+  const playBox = new THREE.Box3(); // the table with the cards: name tags keep off it
   function loop(dt, now) {
     if (dead) return;
     resize();
@@ -360,6 +362,7 @@ export function createScene(canvas, { onFrame } = {}) {
       tv.copy(around(r, -.5)); tv.y = .4; tv.project(camera); t.cx = (tv.x + 1) / 2 * Wd; t.cy = (1 - tv.y) / 2 * Ht;
     });
     info.tags.length = seats.length;
+    playBox.min.set(-A - .25, -.1, -B - .25); playBox.max.set(A + .25, .3, B + .25); playArea(camera, Wd, Ht, playBox);
     onFrame?.(info);
   }
   const ticker = frameLoop(loop, { onSlow: () => res.lower() });

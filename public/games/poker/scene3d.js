@@ -9,6 +9,7 @@ import { toonify, toonMat, skyDome, clouds, island, createFx, shaker, STAR, DOT,
 import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { hudFitOk, easeRefit } from '../../camfit.js';
 import { siteLogo } from '../../art.js';
+import { playArea, disc } from '../../nametag.js';
 
 const INK = '#3b2219';
 const RX = 5.3, RZ = 3.35; // table half-width and half-depth
@@ -197,6 +198,7 @@ export function createScene(canvas, { onFrame } = {}) {
   let flyIn = 0, punch = 0;
 
   // ---------- seats ----------
+  const playOval = disc(RX + .3, 0, { h: .3 }).map(p => p.setZ(p.z * (RZ + .3) / (RX + .3))); // the felt with the cards and chips: name tags keep off it
   let n = 0, me = -1, seats = [], seatKey = '';
   const seatAngle = r => Math.PI / 2 + r * Math.PI * 2 / n;
   const onRim = (r, k = 1, dx = 0) => { const a = seatAngle(r); return new THREE.Vector3(Math.cos(a) * RX * k + dx, 0, Math.sin(a) * RZ * k); };
@@ -460,6 +462,7 @@ export function createScene(canvas, { onFrame } = {}) {
     });
     tagV.copy(pot.position); tagV.y = .1; tagV.project(camera);
     const potXY = { x: (tagV.x + 1) / 2 * W, y: (1 - tagV.y) / 2 * H };
+    playArea(camera, W, H, playOval);
     onFrame?.({ tags, pot: potXY });
   }
   const ticker = frameLoop(loop, { onSlow: () => res.lower() });

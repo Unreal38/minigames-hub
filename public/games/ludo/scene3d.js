@@ -7,6 +7,7 @@ import { diceKit } from '../../dice3d.js';
 import { youArrow, animateArrow, disposeArrow } from '../../marker3d.js';
 import { toonify, toonMat, shell, skyDome, clouds, island, birds, petals, createFx, shaker, disposeToon, STAR as FSTAR, DOT, HEART, CONF, nightScene } from '../../scenery3d.js';
 import { RING_CELLS, GAP, STAR, HOME, MS as MSv, cellOf, yardCentre, yardSlot, lane, turned } from './board.js';
+import { playArea } from '../../nametag.js';
 
 const INK = '#3b2219', SKY_TOP = '#6fbdf2', SKY_LOW = '#d6f1ff', CREAM = '#fff4e2', EMPTY = '#b5a69c';
 const Y_YARD = .25, Y_HOME = .04, AV = .6, SEAT_Y = .59;
@@ -237,6 +238,7 @@ export function createScene(canvas, { onFrame, onCue, onPick }) {
 
   // ---------- picking: the nearest movable pawn to the pointer ----------
   let W_ = 0, H_ = 0;
+  const playPts = Array.from({ length: 8 }, () => new THREE.Vector3()); // the board's corners: name tags keep off it
   function nearest(e) {
     if (!legal.length || me < 0) return -1;
     const b = canvas.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
@@ -400,6 +402,8 @@ export function createScene(canvas, { onFrame, onCue, onPick }) {
     if (shadowIn <= 0) { renderer.shadowMap.needsUpdate = true; shadowIn = moving || rolling || mine.length ? .05 : .3; }
     renderer.render(scene, camera);
     for (const pw of pawns) { tmp.copy(pw.cur); tmp.y += .45; toScreen(tmp, pw.tag); }
+    for (let i = 0; i < 8; i++) root.localToWorld(playPts[i].set(i & 1 ? 7.6 : -7.6, i & 2 ? .6 : 0, i & 4 ? 7.6 : -7.6));
+    playArea(camera, W_, H_, playPts);
     onFrame?.({ tags: avatars.map(a => a.tag), busy: !!(moving || rolling) });
   }
   const ticker = frameLoop(loop, { onSlow: () => res.lower() });

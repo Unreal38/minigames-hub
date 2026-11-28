@@ -7,6 +7,7 @@ import { youArrow, animateArrow, disposeArrow } from '../../marker3d.js';
 import { toonify, toonMat, skyDome, clouds as cloudSea, island, birds, petals, createFx, shaker, disposeToon, STAR, DOT, CONF, nightScene } from '../../scenery3d.js';
 import { cueMeshes } from '../../skins.js';
 import { N, R, HX, HZ, TL, TW, HEAD_X, FOOT_X, POCKETS, FRAME_HZ, simulate, aimCast, placeOk, legalFirst, kindOf, dirOf, colOf } from './rules.js';
+import { playArea } from '../../nametag.js';
 
 const INK = '#3b2219', SKY_TOP = '#6fbdf2', SKY_LOW = '#d6f1ff', FLOOR = -1.75, AVS = .95;
 const FELT = '#3fae7c', FELT2 = '#49b987', CUSH = '#2f9469', WOOD = '#d9955b', WOOD_TOP = '#e9ad74', WOOD_DK = '#a8683c', HOLE = '#24101c';
@@ -255,6 +256,7 @@ export function createScene(canvas, { onFrame, onCue, canAim, canPlace, onPlace,
   const rollAx = new THREE.Vector3(), rollQ = new THREE.Quaternion(), V = new THREE.Vector3(), proj = new THREE.Vector3();
   const look = new THREE.Vector3(), want = new THREE.Vector3();
   let W = 0, Hh = 0, shadowIn = 0, camKey = '', padTop = 0, padBot = 0;
+  const playBox = new THREE.Box3(new THREE.Vector3(-HX - .7, 0, -HZ - .7), new THREE.Vector3(HX + .7, .45, HZ + .7)); // the table: name tags keep off it
   function resize() {
     const w = canvas.clientWidth, h = canvas.clientHeight;
     if (w === W && h === Hh) return;
@@ -420,6 +422,7 @@ export function createScene(canvas, { onFrame, onCue, canAim, canPlace, onPlace,
       p.tag.show = proj.z < 1 && Math.abs(proj.x) < 1.1 && Math.abs(proj.y) < 1.1;
       p.tag.x = (proj.x + 1) / 2 * W; p.tag.y = (1 - proj.y) / 2 * Hh;
     }
+    playArea(camera, W, Hh, playBox);
     onFrame?.({ tags: players.map(p => p.tag), rolling: !!rep });
   }
   const ticker = frameLoop(loop, { onSlow: () => res.lower() });

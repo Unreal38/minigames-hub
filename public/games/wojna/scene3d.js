@@ -8,6 +8,7 @@ import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, sha
 import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { hudFitOk, easeRefit } from '../../camfit.js';
 import { cardTexture } from '../poker/scene3d.js';
+import { playArea, disc } from '../../nametag.js';
 
 const SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
 const R = 2.7;               // table radius
@@ -236,6 +237,7 @@ export function createScene(canvas, { onFrame } = {}) {
   // ---------- loop ----------
   let T = 0, dead = false, lastNow = 0;
   const tv = new THREE.Vector3();
+  const playTop = disc(R + .45, -.02, { h: .45 }); // the table top and the cards/dice on it: name tags keep off it
   const info = { tags: [] };
   function loop(dt, now) {
     if (dead) return;
@@ -275,6 +277,7 @@ export function createScene(canvas, { onFrame } = {}) {
       if (s.mine) tv.set(s.at.x + .62, .1, s.at.z + .1); else tv.copy(s.dir).multiplyScalar(R * .84 + .62).setY(.1); tv.project(camera); t.cx = (tv.x + 1) / 2 * W; t.cy = (1 - tv.y) / 2 * H;
     });
     info.tags.length = seats.length;
+    playArea(camera, W, H, playTop);
     onFrame?.(info);
   }
   const ticker = frameLoop(loop, { onSlow: () => res.lower() });

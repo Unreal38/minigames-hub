@@ -10,6 +10,7 @@ import { hudFitOk, easeRefit } from '../../camfit.js';
 import { cardTexture } from '../poker/scene3d.js';
 import { paintFace } from './cards.js';
 import { PIOTR } from './rules.js';
+import { playArea, disc } from '../../nametag.js';
 
 const SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
 const R = 3.4;               // table radius
@@ -246,6 +247,7 @@ export function createScene(canvas, { onFrame } = {}) {
   // ---------- loop ----------
   let T = 0, dead = false, lastNow = 0;
   const tv = new THREE.Vector3();
+  const playTop = disc(R + .45, -.02, { h: .45 }); // the table top and the cards/dice on it: name tags keep off it
   const info = { tags: [] };
   function loop(dt, now) {
     if (dead) return;
@@ -288,6 +290,7 @@ export function createScene(canvas, { onFrame } = {}) {
       tv.copy(s.g.position); tv.y = .9; tv.project(camera); t.cx = (tv.x + 1) / 2 * W; t.cy = (1 - tv.y) / 2 * H;
     });
     info.tags.length = seats.length;
+    playArea(camera, W, H, playTop);
     onFrame?.(info);
   }
   const ticker = frameLoop(loop, { onSlow: () => res.lower() });

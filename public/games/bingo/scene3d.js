@@ -9,6 +9,7 @@ import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { hudFitOk, easeRefit } from '../../camfit.js';
 import { petModel, wiggle } from '../farm/pets3d.js';
 import { colOf, letterOf, count } from './rules.js';
+import { playArea, disc } from '../../nametag.js';
 
 const INK = '#4a2c22', SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
 const R = 2.95; // table radius
@@ -254,6 +255,7 @@ export function createScene(canvas, { onFrame } = {}) {
   // ---------- loop ----------
   let dead = false;
   const tv = new THREE.Vector3();
+  const playTop = disc(R + .45, -.02, { h: .45 }); // the table top and the cards/dice on it: name tags keep off it
   const info = { tags: [] };
   function loop(dt) {
     if (dead) return;
@@ -310,6 +312,7 @@ export function createScene(canvas, { onFrame } = {}) {
       tv.copy(onRim(r, 1.4)); tv.y = 2.3; tv.project(camera); t.x = (tv.x + 1) / 2 * W; t.y = (1 - tv.y) / 2 * H; t.mine = s.mine;
     });
     info.tags.length = seats.length;
+    playArea(camera, W, H, playTop);
     onFrame?.(info);
   }
   const ticker = frameLoop(loop, { onSlow: () => res.lower() });

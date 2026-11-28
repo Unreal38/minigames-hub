@@ -7,6 +7,7 @@ import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, sha
 import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { hudFitOk, easeRefit } from '../../camfit.js';
 import { homeOf as homeAt, standOf } from './rules.js';
+import { playArea } from '../../nametag.js';
 
 const INK = '#3b2219', SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
 const TOP = .34;                 // grass tile height
@@ -244,6 +245,7 @@ export function createScene(canvas, { onFrame } = {}) {
 
   // ---------- sizing ----------
   let W = 0, H = 0, hudBottom = 120, hudTop = 70;
+  const playBox = new THREE.Box3(); // the plot: name tags keep off it
   const camLook = new THREE.Vector3(0, 0, .3), camBase = new THREE.Vector3(), v = new THREE.Vector3();
   let DIR = new THREE.Vector3(0, 1.5, 1).normalize();
   const toPx = p => { v.copy(p).project(camera); return [(v.x + 1) / 2 * W, (1 - v.y) / 2 * H]; };
@@ -435,6 +437,7 @@ export function createScene(canvas, { onFrame } = {}) {
     });
     info.tags.length = seats.length;
     if (pending) { tilePos(pending.i, .9, tv).project(camera); info.dig.x = (tv.x + 1) / 2 * W; info.dig.y = (1 - tv.y) / 2 * H; }
+    playBox.min.set(-w / 2 - .4, 0, -h / 2 - .4); playBox.max.set(w / 2 + .4, TOP + .2, h / 2 + .4); playArea(camera, W, H, playBox);
     onFrame?.(info);
   }
   const ticker = frameLoop(loop, { onSlow: () => res.lower() });

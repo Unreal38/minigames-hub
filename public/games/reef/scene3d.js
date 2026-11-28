@@ -11,6 +11,7 @@ import { petModel } from '../farm/pets3d.js';
 import { boardOf, value, WILD } from './rules.js';
 import { paintKind, KIND_COL } from './icons.js';
 import { reefLook, paintReefMotif } from '../../pieceskins.js';
+import { playArea } from '../../nametag.js';
 export { paintKind, KIND_COL };
 
 const SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
@@ -301,6 +302,7 @@ export function createScene(canvas, { onFrame } = {}) {
   let T = 0, dead = false, lastNow = 0;
   const tv = new THREE.Vector3();
   const info = { cell: cellPx, tags: [], px: i => { tv.copy(pos(i)).setY(TOP + .3); tv.project(camera); return [(tv.x + 1) / 2 * W, (1 - tv.y) / 2 * H]; } };
+  const playBox = new THREE.Box3(); // the board: name tags keep off it
   function loop(dt, now) {
     if (dead) return;
     resize(force); force = false;
@@ -329,6 +331,7 @@ export function createScene(canvas, { onFrame } = {}) {
     renderer.render(scene, camera);
     seats.forEach((s, i) => { const t = info.tags[i] ||= { x: 0, y: 0, mine: false }; tv.set(s.sp.ax, 2.25, s.sp.az).project(camera); t.x = (tv.x + 1) / 2 * W; t.y = (1 - tv.y) / 2 * H; t.mine = s.mine; });
     info.tags.length = seats.length;
+    if (B) { const hb = B.N * U / 2 + .12; playBox.min.set(-hb, TOP - .1, -hb); playBox.max.set(hb, TOP + .25, hb); playArea(camera, W, H, playBox); }
     onFrame?.(info);
   }
   const ticker = frameLoop(loop, { onSlow: () => res.lower() });

@@ -7,6 +7,7 @@ import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js'
 import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, shaker, STAR, nightScene, roundDeck } from '../../scenery3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { hudFitOk, easeRefit } from '../../camfit.js';
+import { playArea, disc } from '../../nametag.js';
 
 const INK = '#4a2c22', SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
 const R = 2.95;           // table radius
@@ -219,6 +220,7 @@ export function createScene(canvas, { onFrame, onPick } = {}) {
   // ---------- loop ----------
   let dead = false;
   const tv = new THREE.Vector3(), tq = new THREE.Quaternion();
+  const playTop = disc(R + .45, -.02, { h: .45 }); // the table top and the cards/dice on it: name tags keep off it
   const info = { tags: [] };
   function loop(dt) {
     if (dead) return;
@@ -272,6 +274,7 @@ export function createScene(canvas, { onFrame, onPick } = {}) {
     });
     info.tags.length = seats.length;
     tv.set(0, .3, 0).project(camera); info.tray = { x: (tv.x + 1) / 2 * W, y: (1 - tv.y) / 2 * H };
+    playArea(camera, W, H, playTop);
     onFrame?.(info);
   }
   const ticker = frameLoop(loop, { onSlow: () => res.lower() });
