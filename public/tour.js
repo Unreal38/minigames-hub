@@ -254,16 +254,29 @@ function paintSheet() {
   const ents = T.st === 'signup' || T.st === 'checkin' ? T.ents : T.seed.map(pt => T.ents.find(e => e.pt === pt) || { pt, name: nameOf(T, pt) });
   const bracket = T.rounds.length ? `<h3>${T.fmt === 'ko' ? L('Bracket', 'Drabinka') : L('Tables', 'Stoły')}</h3><div class="tbracket ${T.fmt}">${T.rounds.map((row, r) => `<div class="tround"><h4>${esc(roundName(T, r, row[0]))}</h4><div class="tr-ms">${row.filter(m => !m.third).map(m => matchHtml(T, m, r)).join('')}${row.filter(m => m.third && !m.bye).map(m => `<h4>${L('3rd place', 'Mecz o 3. miejsce')}</h4>${matchHtml(T, m, r)}`).join('')}</div></div>`).join('')}</div>` : '';
   const log = T.log.filter(x => LOG(x, T)).slice(-8).reverse();
-  const html = `<header class="tp-head"><img src="/gamepics/${esc(T.game)}-s.jpg" alt=""><div><p class="tp-kick">🏆 ${esc(d.gameName(T.game))} · ${STATE()[T.st]}</p><h2>${esc(pick(T.name))}</h2></div></header>
-    <div class="tb-chips"><span>${fmtText(T)}</span><span>📅 ${esc(when(T.start))}</span><span class="prize">${prizeText(T)}</span>${T.minLv ? `<span>${L(`Level ${T.minLv}+`, `Poziom ${T.minLv}+`)}</span>` : ''}</div>
+  const here = T.ents.filter(e => e.in).length, R = curRound(T);
+  const status = T.st === 'signup' ? `<small>${L('Sign-ups close in', 'Zapisy kończą się za')}</small>${cd(T.start - T.checkin)}<small>${L(`${T.ents.length} of ${T.max} places taken`, `Zajęte miejsca: ${T.ents.length} z ${T.max}`)}</small><span class="tb-bar"><i style="width:${Math.round(100 * T.ents.length / T.max)}%"></i></span>`
+    : T.st === 'checkin' ? `<small>${L('Starts in', 'Start za')}</small>${cd(T.start)}<small>${L(`${here} of ${T.ents.length} here`, `Obecni: ${here} z ${T.ents.length}`)}</small><span class="tb-bar"><i style="width:${Math.round(100 * here / Math.max(1, T.ents.length))}%"></i></span>`
+    : T.st === 'live' ? `<small>${L('Now playing', 'Teraz gramy')}</small><b class="tb-champ">${esc(roundName(T, R, T.rounds[R]?.[0]))}</b><small>${L(`${T.seed.length} players`, `Graczy: ${T.seed.length}`)}</small>` : '';
+  const side = status || acts.length ? `<div class="tp-side">${status ? `<div class="pb-open tb-left">${status}</div>` : ''}${acts.join('')}</div>` : '';
+  const html = `<header class="tp-head"><img src="/gamepics/${esc(T.game)}-s.jpg" alt=""><div><p class="tp-kick">🏆 ${esc(d.gameName(T.game))} · ${STATE()[T.st]}</p><h2>${esc(pick(T.name))}</h2>
+    <div class="tb-chips"><span>${fmtText(T)}</span><span>📅 ${esc(when(T.start))}</span><span class="prize">${prizeText(T)}</span>${T.minLv ? `<span>${L(`Level ${T.minLv}+`, `Poziom ${T.minLv}+`)}</span>` : ''}</div></div></header>
     ${top}
-    ${acts.length ? `<div class="row tp-acts">${acts.join('')}</div>` : ''}
-    <div class="tp-info"><p class="tp-rules">${esc(rulesText(T))}</p>
+    <div class="tp-grid${side ? '' : ' solo'}">${side}<div class="tp-info"><p class="tp-rules">${esc(rulesText(T))}</p>
       <div class="tp-prizes" aria-label="${L('Prizes', 'Nagrody')}">${['🥇', '🥈', '🥉'].map((md, i) => T.prize.c[i] ? `<span><i aria-hidden="true">${md}</i><b>${T.prize.c[i]}</b></span>` : '').join('')}${T.prize.all ? `<span><i aria-hidden="true">🎟️</i><b>${T.prize.all}</b><small>${L('everyone who plays', 'każdy, kto zagra')}</small></span>` : ''}</div>
-      <p class="tp-prize">${L('Coins from the house: nobody pays to play. The winner gets a step towards the Cup Winner title.', 'Monety funduje strona: nikt nie płaci za udział. Zwycięzca zdobywa krok do tytułu Zdobywca pucharu.')}</p></div>
+      <p class="tp-prize">${L('Coins from the house: nobody pays to play.', 'Monety funduje strona: nikt nie płaci za udział.')}</p>
+      <h4>${L('What stays after the cup', 'Co zostaje po turnieju')}</h4>
+      <ul class="tp-rew">
+        <li><i aria-hidden="true">👑</i><span>${L('The winner wears a crown by their name until the next cup.', 'Zwycięzca nosi koronę przy imieniu aż do następnego turnieju.')}</span></li>
+        <li><i aria-hidden="true">🏆</i><span>${L('Cups, 2nd and 3rd places go on the trophy shelf of the profile card.', 'Puchary oraz 2. i 3. miejsca trafiają na półkę z trofeami na wizytówce.')}</span></li>
+        <li><i aria-hidden="true">📈</i><span>${L('Tournament ranking points: 10 for 1st, 6 for 2nd, 4 for 3rd, +1 for everyone who plays (Rankings › Tournaments).', 'Punkty do rankingu turniejów: 10 za 1. miejsce, 6 za 2., 4 za 3., +1 dla każdego, kto zagra (Rankingi › Turnieje).')}</span></li>
+        <li><i aria-hidden="true">🎖️</i><span>${L('Titles: Finalist (reach a final), Cup Winner (1 win), Tournament Legend (5 wins).', 'Tytuły: Finalista (finał), Zdobywca pucharu (1 wygrana), Legenda turniejów (5 wygranych).')}</span></li>
+        <li><i aria-hidden="true">✨</i><span>${L('Champion’s laurel frame for 3 wins, Trophy hall card background for 10.', 'Ramka Laur mistrza za 3 wygrane, tło wizytówki Sala trofeów za 10.')}</span></li>
+        <li><i aria-hidden="true">⭐</i><span>${L('Every match is a real game: XP, wins and the game’s own ranking count as usual.', 'Każdy mecz to prawdziwa gra: XP, wygrane i ranking tej gry liczą się jak zwykle.')}</span></li>
+      </ul></div></div>
     ${bracket}
     <h3>${T.st === 'signup' || T.st === 'checkin' ? L(`Signed up · ${T.ents.length}/${T.max}`, `Zapisani · ${T.ents.length}/${T.max}`) : L(`Players · ${ents.length}`, `Gracze · ${ents.length}`)}</h3>
-    <div class="tp-ents">${ents.map((e, i) => `<span class="tp-ent${e.pt === myPt() ? ' me' : ''}">${T.seed.length ? `<i>${i + 1}</i>` : ''}${pill(T, e.pt)}</button>${T.st === 'checkin' ? (e.in ? '<small class="good">✓</small>' : '<small>…</small>') : ''}${admin && (T.st === 'signup' || T.st === 'checkin' || T.st === 'live') ? `<button type="button" class="tp-x" data-tour="kick" data-id="${T.id}" data-pt="${e.pt}" title="${L('Take out of the tournament', 'Wypisz z turnieju')}">×</button>` : ''}</span>`).join('') || `<p class="rknote">${L('Nobody yet. Be the first!', 'Jeszcze nikt. Bądź pierwszy!')}</p>`}</div>
+    <div class="tp-ents">${ents.map((e, i) => `<span class="tp-ent${e.pt === myPt() ? ' me' : ''}">${T.seed.length ? `<i>${i + 1}</i>` : ''}${pill(T, e.pt)}</button>${T.st === 'checkin' ? (e.in ? '<small class="good">✓</small>' : '<small>…</small>') : ''}${admin && (T.st === 'signup' || T.st === 'checkin' || T.st === 'live') ? `<button type="button" class="tp-x" data-tour="kick" data-id="${T.id}" data-pt="${e.pt}" title="${L('Take out of the tournament', 'Wypisz z turnieju')}">×</button>` : ''}</span>`).join('') || `<p class="tp-empty">${L('Nobody yet. Be the first!', 'Jeszcze nikt się nie zapisał. Twoje miejsce czeka!')}</p>`}</div>
     ${log.length ? `<h3>${L('Changes', 'Zmiany')}</h3><ul class="tp-log">${log.map(x => `<li><time>${hm(x.at)}</time> ${esc(LOG(x, T))}</li>`).join('')}</ul>` : ''}
     <div class="row tp-foot"><button type="button" class="btn w" data-tour="hist">${L('Past tournaments', 'Poprzednie turnieje')}</button><button type="button" class="btn" data-tour="close">${L('Done', 'Gotowe')}</button></div>`;
   if (box.dataset.h !== html) { morph(box, html); box.dataset.h = html; }

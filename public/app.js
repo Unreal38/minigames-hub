@@ -2500,10 +2500,11 @@ $app.addEventListener('change', e => {
 
 // ---------- global rankings ----------
 // One leaderboard per minigame across every player on the site (bots never count), plus an overall one by XP.
-const RK_TABS = [['overall', L('Overall', 'Ogólny')], ...Object.entries(GAMES).map(([id, g]) => [id, g.name]), ['hay', SOLO.hay.name], ['pop', SOLO.pop.name], ['mj', SOLO.mj.name], ['farm', FARM_NAME]];
+const RK_TABS = [['overall', L('Overall', 'Ogólny')], ['tour', `🏆 ${L('Tournaments', 'Turnieje')}`], ...Object.entries(GAMES).map(([id, g]) => [id, g.name]), ['hay', SOLO.hay.name], ['pop', SOLO.pop.name], ['mj', SOLO.mj.name], ['farm', FARM_NAME]];
 const RK_NOTE = {
   overall: L('Ranked by XP from every game. Wins earn the most.', 'Ranking według XP ze wszystkich gier. Najwięcej dają wygrane.'),
   marbles: L('Ranked by races your colour won.', 'Ranking według wyścigów wygranych przez twój kolor.'),
+  tour: L('Tournament points: 10 for a cup, 6 for 2nd, 4 for 3rd, +1 for every tournament played.', 'Punkty turniejowe: 10 za puchar, 6 za 2. miejsce, 4 za 3., +1 za każdy rozegrany turniej.'),
   farm: L('The Pet Farm ladder: points from Arena battles against other farms.', 'Drabinka Farmy zwierzaków: punkty z walk na Arenie przeciwko innym farmom.'),
   hay: L('Ranked by the best harvest from one field, then by fields cleared.', 'Ranking według najlepszych zbiorów z jednego pola, potem według oczyszczonych pól.'),
   pop: L('Ranked by the highest level cleared, then by the best score on one shelf.', 'Ranking według najwyższego ukończonego poziomu, potem według najlepszego wyniku na jednej półce.'),
@@ -2513,6 +2514,7 @@ const RK_NOTE = {
 const cWins = n => cnt(n, 'win', 'wins', 'wygrana', 'wygrane', 'wygranych'), cGames = n => cnt(n, 'game', 'games', 'gra', 'gry', 'gier');
 function rkStat(game, r) {
   if (game === 'overall') return [`${num(r.xp)} XP`, `${cWins(r.wins)} · ${cGames(r.games)}`];
+  if (game === 'tour') return [cnt(r.pts, 'pt', 'pts', 'pkt'), `🏆 ${r.wins} · 🥈 ${r.t2 | 0} · 🥉 ${r.t3 | 0} · ${L(`${r.games} played`, `rozegrane: ${r.games}`)}`];
   if (game === 'farm') return [cnt(r.pts, 'pt', 'pts', 'pkt'), `${cnt(r.pets, 'pet', 'pets', 'zwierzak', 'zwierzaki', 'zwierzaków')} · ${L('best Lv', 'najwyższy poz.')} ${r.top}`];
   if (game === 'hay') return [`×${num(r.best)}`, L(`${cnt(r.wins, 'field')} cleared · top level ${r.top || 1}`, `${cnt(r.wins, '', '', 'oczyszczone pole', 'oczyszczone pola', 'oczyszczonych pól')} · najwyższy poziom ${r.top || 1}`)];
   if (game === 'pop') return [L(`Level ${r.top || 0}`, `Poziom ${r.top || 0}`), L(`best score ${num(r.best)} · ${cnt(r.games, 'shelf', 'shelves')} played`, `rekord ${num(r.best)} · rozegrane półki: ${num(r.games)}`)];
@@ -2535,9 +2537,9 @@ function rankingsHtml(all = false) {
   if (!d) return `<p class="rknote">${L('Loading…', 'Wczytywanie…')}</p>`;
   const rows = all ? d.rows : d.rows.slice(0, RK_SHORT), mine = d.mine || (!all && d.rows.slice(RK_SHORT).find(r => r.me));
   const note = `<p class="rknote">${RK_NOTE[g] || RK_NOTE.default}${all && d.total > d.rows.length ? L(` Top ${d.rows.length} of ${num(d.total)} players.`, ` Najlepsze ${d.rows.length} z ${num(d.total)} graczy.`) : ''}</p>`;
-  if (!d.rows.length) return note + `<div class="empty">${g === 'farm' ? L('No farms with pets yet. Visit your farm to be the first!', 'Nie ma jeszcze farm ze zwierzakami. Zajrzyj na swoją farmę i zajmij pierwsze miejsce!') : L('Nobody has finished a game here yet. Play one to take first place!', 'Nikt jeszcze nie skończył tu gry. Zagraj i zajmij pierwsze miejsce!')}</div>`;
+  if (!d.rows.length) return note + `<div class="empty">${g === 'tour' ? L('No tournaments finished yet. Sign up for the next one!', 'Żaden turniej jeszcze się nie skończył. Zapisz się na najbliższy!') : g === 'farm' ? L('No farms with pets yet. Visit your farm to be the first!', 'Nie ma jeszcze farm ze zwierzakami. Zajrzyj na swoją farmę i zajmij pierwsze miejsce!') : L('Nobody has finished a game here yet. Play one to take first place!', 'Nikt jeszcze nie skończył tu gry. Zagraj i zajmij pierwsze miejsce!')}</div>`;
   return note + `<ol class="rk">${rows.map(r => rkRow(g, r)).join('')}${mine ? `<li class="gap" aria-hidden="true">…</li>${rkRow(g, mine)}` : ''}</ol>`
-    + (d.rows.some(r => r.me) || d.mine ? '' : `<p class="rknote">${g === 'farm' ? L('Raise a pet on your farm to join this ladder.', 'Wychowaj zwierzaka na swojej farmie, żeby dołączyć do tej drabinki.') : L('Finish a game to get on this board.', 'Dokończ grę, żeby trafić do tego rankingu.')}</p>`)
+    + (d.rows.some(r => r.me) || d.mine ? '' : `<p class="rknote">${g === 'tour' ? L('Play in a tournament to join this ranking.', 'Zagraj w turnieju, żeby trafić do tego rankingu.') : g === 'farm' ? L('Raise a pet on your farm to join this ladder.', 'Wychowaj zwierzaka na swojej farmie, żeby dołączyć do tej drabinki.') : L('Finish a game to get on this board.', 'Dokończ grę, żeby trafić do tego rankingu.')}</p>`)
     + (!all && d.rows.length > RK_SHORT ? `<button type="button" class="btn sm w tall" data-act="rkall">${L('See all', 'Zobacz wszystkich:')} ${Math.min(d.total || d.rows.length, d.rows.length)}</button>` : '');
 }
 let rkSheet = null;
@@ -3391,6 +3393,14 @@ function skyStrip(p) {
     ${part.map(c => `<figure class="todo">${conTile(c, sky.lit[c.id])}<figcaption>${esc(c.n)}<small>${sky.lit[c.id]} / ${c.p.length}</small></figcaption></figure>`).join('')}
     ${left ? `<div class="more" title="${L('Not lit yet', 'Jeszcze niezapalone')}">+${left}</div>` : ''}</div>`;
 }
+// Tournament trophies on the profile card: a cup per win (up to 12), then the counts.
+function trophyShelf(p) {
+  if (!p.tp) return '';
+  const w = p.tw | 0;
+  return `<div class="ptrophy"><h3 style="margin:0">${L('Tournaments', 'Turnieje')}</h3>
+    ${w ? `<div class="pt-shelf" aria-hidden="true">${'🏆'.repeat(Math.min(12, w))}${w > 12 ? `<small>+${w - 12}</small>` : ''}</div>` : ''}
+    <div class="pt-row"><span title="${L('Cups won', 'Zdobyte puchary')}">🏆 ${w}</span><span class="s2" title="${L('2nd places', '2. miejsca')}">🥈 ${p.t2 | 0}</span><span class="s3" title="${L('3rd places', '3. miejsca')}">🥉 ${p.t3 | 0}</span><span class="pl">${L(`${p.tp} played`, `rozegrane: ${p.tp}`)} · ${cnt(p.tpts | 0, 'pt', 'pts', 'pkt')}</span></div></div>`;
+}
 function openPlayer(p) {
   if (!p) return; playerSheet?.close();
   const rate = p.games ? Math.round(100 * p.wins / p.games) : 0, kit = ['cb', 'dc', 'gb', 'kp', 'cu', 'cs', 'dm', 'ck', 'rt', 'ln', 'bs', 'ht', 'sl', 'dt', 'bb', 'bt'];
@@ -3401,6 +3411,7 @@ function openPlayer(p) {
         <div class="phead${cardBgCls(p.fl)}">${cardBg(p.fl)}${avatarHtml(p.color, p.av, 72, frameCls(p.fl))}<div><h2><span class="pname" ${fitw(p.name, '700 100px Rubik, sans-serif')}>${nameHtml(p.name, p.fl)}</span> ${p.lv ? lvChip(p.lv, p.cn) : ''}</h2>
           ${titleHtml(p.fl)}<small>${p.me ? L('This is you', 'To ty') : p.online ? `<i class="dot on"></i>${L('Online now', 'Teraz online')}` : L('Not online', 'Offline')}${p.guest ? L(' · guest', ' · gość') : ''} · ${esc(p.lv ? rankOf(p.lv).name : p.rank || '')}${conOf(p.cn) ? ` · ${L('constellation', 'gwiazdozbiór')}: ${esc(conOf(p.cn).n)}` : ''}</small></div></div>
         <div class="pstats"><span><b>${num(p.games)}</b>${L('games', 'gry')}</span><span><b>${num(p.wins)}</b>${L('wins', 'wygrane')}</span><span><b>${rate}%</b>${L('win rate', 'skuteczność')}</span><span><b>${num(p.xp)}</b>XP</span></div>
+        ${trophyShelf(p)}
         ${skyStrip(p)}
         ${p.top.length ? `<h3>${L('Best games', 'Najlepsze gry')}</h3><ul class="ptop">${p.top.map(g => `<li><b>${esc(GAMES[g.g]?.name || SOLO[g.g]?.name || g.g)}</b><span>${cWins(g.wins)} · ${cGames(g.games)}</span></li>`).join('')}</ul>` : `<p>${L('No finished games yet.', 'Nie ma jeszcze skończonych gier.')}</p>`}
         <h3>${L('Table kit', 'Zestaw do gier')}</h3>

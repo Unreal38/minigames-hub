@@ -323,15 +323,19 @@ export function byTag(tag) {
 export function publicProfile(p) {
   const games = Object.entries(p.byGame || {}).filter(([, g]) => g?.games).map(([g, x]) => ({ g, games: x.games, wins: x.wins || 0, best: x.best || 0 }))
     .sort((a, b) => b.wins - a.wins || b.games - a.games).slice(0, 4);
-  return { pt: tagOf(p), name: p.name || 'Guest', color: p.color, av: p.av, fl: flair(p), guest: !p.user, ...badge(p), xp: p.xp || 0, games: p.games || 0, wins: p.wins || 0, top: games, sky: { lit: skyOf(p).lit }, ...(p.tp ? { tw: p.tw || 0, tp: p.tp } : {}) };
+  return { pt: tagOf(p), name: p.name || 'Guest', color: p.color, av: p.av, fl: flair(p), guest: !p.user, ...badge(p), xp: p.xp || 0, games: p.games || 0, wins: p.wins || 0, top: games, sky: { lit: skyOf(p).lit }, ...(p.tp ? { tw: p.tw || 0, tp: p.tp, t2: p.t2 || 0, t3: p.t3 || 0, tpts: p.tpts || 0 } : {}) };
 }
 // What other players see of this profile's cosmetics: { nm, fr, ti, wn } with unset ones left out.
 export const flair = p => {
   if (!p) return {};
   const f = flairOf(p);
   if (f.ip) { const have = decorHook(p.pid); f.ip = f.ip.filter(t => have.includes(t)); if (!f.ip.length) delete f.ip; }
+  if (p.pid && p.pid === champHook()) f.cup = 1; // the latest tournament winner wears a crown by their name until the next cup
   return f;
 };
+// server/tour.js tells this file who won the latest tournament.
+let champHook = () => null;
+export const onChamp = fn => { champHook = fn; };
 // Isle decor comes from the player's Pet Farm: onDecor tells this file how to ask which decorations a farm has.
 let decorHook = () => [];
 export const onDecor = fn => { decorHook = fn; };
@@ -393,7 +397,7 @@ export const SHOP_SIZE = Object.keys(PRICE).length;
 
 // What a player sees about themselves.
 export function me(p) {
-  return { user: p.user, lang: p.lang || '', name: p.name, color: p.color, av: p.av, games: p.games, wins: p.wins, pts: p.pts, byGame: p.byGame, coins: p.coins || 0, owned: p.owned || [], cos: p.cos || {}, fits: p.fits || [], gw: p.gw || null, daily: { best: p.daily?.best || 0 }, bestPos: p.bestPos || 0, petSp: p.petSp || 0, pf: p.pf || {}, tw: p.tw || 0, tp: p.tp || 0, plzDays: p.plz?.days || 0, today: shopDate(), next: untilNext(), pt: tagOf(p), hay: { lv: p.hay?.lv || 1, paid: p.hay?.day === dayOf() ? p.hay.paid || 0 : 0 }, pop: { lv: p.pop?.lv || 1, paid: p.pop?.day === dayOf() ? p.pop.paid || 0 : 0 }, mj: { lv: p.mj?.lv || 1, paid: p.mj?.day === dayOf() ? p.mj.paid || 0 : 0 }, ...(isAdmin(p) ? { admin: true } : {}), ...progress(p.xp), sky: skyOf(p) };
+  return { user: p.user, lang: p.lang || '', name: p.name, color: p.color, av: p.av, games: p.games, wins: p.wins, pts: p.pts, byGame: p.byGame, coins: p.coins || 0, owned: p.owned || [], cos: p.cos || {}, fits: p.fits || [], gw: p.gw || null, daily: { best: p.daily?.best || 0 }, bestPos: p.bestPos || 0, petSp: p.petSp || 0, pf: p.pf || {}, tw: p.tw || 0, tp: p.tp || 0, t2: p.t2 || 0, t3: p.t3 || 0, plzDays: p.plz?.days || 0, today: shopDate(), next: untilNext(), pt: tagOf(p), hay: { lv: p.hay?.lv || 1, paid: p.hay?.day === dayOf() ? p.hay.paid || 0 : 0 }, pop: { lv: p.pop?.lv || 1, paid: p.pop?.day === dayOf() ? p.pop.paid || 0 : 0 }, mj: { lv: p.mj?.lv || 1, paid: p.mj?.day === dayOf() ? p.mj.paid || 0 : 0 }, ...(isAdmin(p) ? { admin: true } : {}), ...progress(p.xp), sky: skyOf(p) };
 }
 // The little badge other players see next to a name.
 export function badge(p) { const g = progress(p?.xp || 0), cn = g.stars ? skyOf(p).shown : ''; return { lv: g.level, rank: g.rank, icon: g.icon, stars: g.stars, ...(cn ? { cn } : {}) }; }
@@ -757,6 +761,7 @@ const ORDER = {
   hay: (a, b) => b.best - a.best || b.wins - a.wins || b.pts - a.pts, // Hay Hunch is solo: best single field, then fields cleared
   pop: (a, b) => b.top - a.top || b.best - a.best || b.wins - a.wins, // Pet Pop is solo: highest level cleared, then best score
   mj: (a, b) => b.top - a.top || b.best - a.best || b.wins - a.wins, // Pet Mahjong (solo): highest level cleared, then best score
+  tour: (a, b) => b.pts - a.pts || b.wins - a.wins || b.t2 - a.t2 || a.games - b.games, // tournaments: place points, then cups
   default: (a, b) => b.wins - a.wins || b.rate - a.rate || b.best - a.best || a.games - b.games,
 };
 function boardRows(game) {
@@ -766,10 +771,11 @@ function boardRows(game) {
   const rows = [];
   for (const p of profiles.values()) {
     if (!p.user && accounts.has(String(p.name ?? '').trim().toLowerCase())) continue;
-    const g = game === 'overall' ? { games: p.games || 0, wins: p.wins || 0, best: 0, pts: p.pts || 0 } : p.byGame?.[game];
+    const g = game === 'overall' ? { games: p.games || 0, wins: p.wins || 0, best: 0, pts: p.pts || 0 }
+      : game === 'tour' ? (p.user && p.tp ? { games: p.tp, wins: p.tw || 0, pts: p.tpts || 0, t2: p.t2 || 0, t3: p.t3 || 0 } : null) : p.byGame?.[game];
     if (!g?.games) continue;
     rows.push({ pid: p.pid, pt: tagOf(p), name: p.name || 'Guest', color: p.color, av: p.av, fl: flair(p), guest: !p.user, ...badge(p), xp: p.xp || 0,
-      games: g.games, wins: g.wins || 0, best: g.best || 0, pts: g.pts || 0, net: g.net || 0, top: g.top || 0, rate: Math.min(100, Math.round(100 * (g.wins || 0) / g.games)) });
+      games: g.games, wins: g.wins || 0, best: g.best || 0, pts: g.pts || 0, net: g.net || 0, top: g.top || 0, rate: Math.min(100, Math.round(100 * (g.wins || 0) / g.games)), ...(game === 'tour' ? { t2: g.t2, t3: g.t3 } : {}) });
   }
   rows.sort(ORDER[game] || ORDER.default);
   // The best place ever held in the overall ranking stays on the profile: it unlocks card backgrounds (cosmetics.js, earn.top).

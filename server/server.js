@@ -920,7 +920,7 @@ function handle(c, m) {
     case 'rankings': { // the hub's global leaderboards, one per minigame
       const g = String(m.game ?? ''), pid = store.profileOf(c.token)?.pid;
       if (g === 'farm') return send(c, { t: 'rankings', ...farm.ladder(pid) });
-      if (g !== 'overall' && g !== 'hay' && g !== 'pop' && g !== 'mj' && !isGame(g)) return;
+      if (g !== 'overall' && g !== 'hay' && g !== 'pop' && g !== 'mj' && g !== 'tour' && !isGame(g)) return;
       return send(c, { t: 'rankings', ...store.leaderboard(g, pid) });
     }
     case 'create': {

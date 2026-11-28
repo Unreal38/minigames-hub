@@ -23,7 +23,7 @@ export const COS = {
   fr: { label: 'Profile frame', items: [{ n: 'None' }, { n: 'Cloud', p: 120 }, { n: 'Vine', p: 120 }, { n: 'Hearts', p: 140 }, { n: 'Stars', p: 180 },
     { n: 'Gold', p: 250 }, { n: 'Flame', p: 220 }, { n: 'Rainbow', p: 280 }, { n: 'Snow', p: 160, s: 'winter' }, { n: 'Coffee ring', pk: 'kofi' },
     { n: 'Blossom', p: 160, s: 'spring' }, { n: 'Seashells', p: 160, s: 'summer' }, { n: 'Pumpkins', p: 160, s: 'halloween' }, { n: 'Lightning', p: 200 }, { n: 'Pebbles', p: 140 },
-    { n: 'Paper lanterns', p: 180 }, { n: 'Leaf', p: 140 }, { n: 'Ember', p: 140 }, { n: 'Tide', p: 140 }] },
+    { n: 'Paper lanterns', p: 180 }, { n: 'Leaf', p: 140 }, { n: 'Ember', p: 140 }, { n: 'Tide', p: 140 }, { n: 'Champion’s laurel', earn: { tw: 3 } }] },
   // Card backgrounds: what sits behind your name wherever your card shows (waiting rooms, your profile card, the wardrobe plate, the account menu).
   // The art is CSS and SVG (style.css .pbN, public/cardbg/). t: 'p' pattern, 's' game scene, 'a' animated, 'e' earned. d: dark art, so the text on it turns light.
   pb: { label: 'Card background', items: [{ n: 'None' },
@@ -40,7 +40,7 @@ export const COS = {
     { n: 'Blast Bay maze', p: 200, t: 's' }, { n: 'Pet Pairs table', p: 200, t: 's' }, { n: 'Pet Herds table', p: 200, t: 's' },
     { n: 'Spyglass Isle', p: 200, t: 's' }, { n: 'Sugar Siege', p: 200, t: 's' },
     { n: 'Marble run', p: 200, t: 's' }, { n: 'Ludo board', p: 200, t: 's' }, { n: 'Snakes & ladders', p: 200, t: 's' }, { n: 'Tower Stack', p: 200, t: 's' }, { n: 'Kitchen counter', p: 200, t: 's' },
-    { n: 'Treasure field', p: 200, t: 's' }, { n: 'Bingo card', p: 200, t: 's' }, { n: 'Burrow lawn', p: 200, t: 's' }, { n: 'Cove battle', p: 200, t: 's' }, { n: 'Tulip field', p: 220, t: 's', s: 'spring' }, { n: 'Friendship Trail', p: 200, t: 's' }] },
+    { n: 'Treasure field', p: 200, t: 's' }, { n: 'Bingo card', p: 200, t: 's' }, { n: 'Burrow lawn', p: 200, t: 's' }, { n: 'Cove battle', p: 200, t: 's' }, { n: 'Tulip field', p: 220, t: 's', s: 'spring' }, { n: 'Friendship Trail', p: 200, t: 's' }, { n: 'Trophy hall', t: 'e', earn: { tw: 10 } }] },
   ti: { label: 'Title', items: [{ n: 'None' },
     { n: 'Pot Wizard', earn: { g: 'hotpot', w: 5 } }, { n: 'Card Shark', earn: { g: 'poker', w: 5 } }, { n: 'Kart Menace', earn: { g: 'kart', w: 5 } },
     { n: 'Marble Whisperer', earn: { g: 'marbles', w: 5 } }, { n: 'Ladder Legend', earn: { g: 'ladders', w: 5 } }, { n: 'Ludo Lord', earn: { g: 'ludo', w: 5 } },
@@ -56,7 +56,7 @@ export const COS = {
     { n: 'Journal Keeper', earn: { pf: 'jn', n: 8 } }, { n: 'Legend Seeker', earn: { pf: 'lg', n: 1 } }, { n: 'Museum Curator', earn: { pf: 'mus', n: 5 } }, { n: 'Order Runner', earn: { pf: 'ord', n: 25 } },
     { n: 'Memory Ace', earn: { g: 'pairs', w: 5 } }, { n: 'Sugar Sieger', earn: { g: 'siege', w: 5 } }, { n: 'Herd Leader', earn: { g: 'herd', w: 5 } }, { n: 'Trail Friend', earn: { g: 'trail', w: 5 } },
     { n: 'Pop Star', earn: { g: 'pop', w: 30 } }, { n: 'Hay Whisperer', earn: { g: 'hay', w: 20 } }, { n: 'Tile Sage', earn: { g: 'mj', w: 20 } },
-    { n: 'Cup Winner', earn: { tw: 1 } }, { n: 'Tournament Legend', earn: { tw: 5 } }] }, // the solo games: wins there are levels cleared
+    { n: 'Cup Winner', earn: { tw: 1 } }, { n: 'Tournament Legend', earn: { tw: 5 } }, { n: 'Finalist', earn: { tf: 1 } }] }, // the solo games: wins there are levels cleared
   wn: { label: 'Win effect', items: [{ n: 'None' }, { n: 'Confetti', p: 150 }, { n: 'Hearts', p: 150 }, { n: 'Fish rain', p: 200 }, { n: 'Fireworks', p: 250 },
     { n: 'Coin shower', p: 300 }, { n: 'Snowfall', p: 180, s: 'winter' }, { n: 'Coffee break', pk: 'kofi' },
     { n: 'Blossoms', p: 180, s: 'spring' }, { n: 'Bubbles', p: 180, s: 'summer' }, { n: 'Bats', p: 180, s: 'halloween' }, { n: 'Paw prints', p: 160 },
@@ -168,6 +168,7 @@ export function earnProgress(it, me) {
   const e = it?.earn; if (!e) return null;
   if (e.top) return [me?.bestPos >= 1 && me.bestPos <= e.top ? 1 : 0, 1, e.top === 1 ? L('reach 1st place in the overall ranking', 'zajmij 1. miejsce w rankingu ogólnym') : L(`reach the top ${e.top} of the overall ranking`, `wejdź do pierwszej ${e.top} rankingu ogólnego`)];
   if (e.pv) return [Math.min(e.pv, (me?.plzDays ?? me?.plz?.days) | 0), e.pv, L(`visit the Plaza on ${e.pv} different days`, `odwiedź Plac w ${e.pv} różnych dniach`)];
+  if (e.tf) return [Math.min(e.tf, (me?.tw | 0) + (me?.t2 | 0)), e.tf, L('reach a tournament final', 'dojdź do finału turnieju')];
   if (e.tw) return [Math.min(e.tw, me?.tw | 0), e.tw, e.tw === 1 ? L('win a tournament', 'wygraj turniej') : L(`win ${e.tw} tournaments`, `wygraj ${e.tw} turniejów`)];
   if (e.pf) return [Math.min(e.n, me?.pf?.[e.pf] | 0), e.n, PF_GOAL[e.pf](e.n)];
   if (e.sp) return [Math.min(e.sp, me?.petSp | 0), e.sp, L(`${e.sp} pet species in your Pet Farm album`, `${e.sp} gatunków zwierzaków w albumie Farmy zwierzaków`)];
@@ -211,7 +212,8 @@ export const stickersOf = me => STICKERS.map((s, j) => ({ ...s, k: STICKER_BASE 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const idx = (fl, k) => { const i = fl?.[k] | 0; return i > 0 && cosItem(k, i) ? i : 0; };
 // A player's name in their name colour. Safe to put straight into HTML.
-export const nameHtml = (name, fl) => { const i = idx(fl, 'nm'); return i ? `<span class="nmfx nm${i}">${esc(name)}</span>` : esc(name); };
+const CROWN = () => `<span class="cupcrown" role="img" title="${L('Winner of the latest tournament', 'Zwycięzca ostatniego turnieju')}" aria-label="${L('Winner of the latest tournament', 'Zwycięzca ostatniego turnieju')}">👑</span>`;
+export const nameHtml = (name, fl) => { const i = idx(fl, 'nm'), n = i ? `<span class="nmfx nm${i}">${esc(name)}</span>` : esc(name); return fl?.cup ? n + CROWN() : n; };
 export const titleOf = fl => { const i = idx(fl, 'ti'); return i ? COS.ti.items[i].n : ''; };
 export const titleHtml = fl => { const t = titleOf(fl); return t ? `<span class="ttl">${esc(t)}</span>` : ''; };
 // The class to give avatarHtml() so the picture gets the player's frame.

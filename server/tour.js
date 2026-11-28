@@ -65,6 +65,10 @@ export function load() {
   const now = Date.now();
   for (const T of tours) for (const m of allMatches(T)) if (m.st === 'call' || m.st === 'play') { m.st = 'wait'; m.code = ''; m.due = 0; m.next = 0; m.ext = []; }
   for (const T of tours) if (T.st === 'live') T.log.push({ at: now, k: 'restart' });
+  // cups that ended before places were recorded: add their 2nd / 3rd places and ranking points now
+  let back = false; for (const T of tours) if (T.st === 'done' && !T.rw && Array.isArray(T.top)) { places(T); back = true; }
+  if (back) { store.invalidateBoards(); store.scheduleSave(); saveNow(); }
+  store.onChamp(champ);
 }
 
 // ---------- what is allowed ----------
@@ -165,11 +169,24 @@ function finish(T) {
     deps.tell(pid, { t: 'tour', op: 'prize', id: T.id, place: T.top.indexOf(pid) + 1, coins: n });
   }
   for (const pid of new Set(T.seed)) { const p = store.profiles.get(pid); if (p) p.tp = (p.tp || 0) + 1; }
-  const champ = store.profiles.get(T.top[0]); if (champ) { champ.tw = (champ.tw || 0) + 1; deps.tell(T.top[0], { t: 'me' }); }
-  store.scheduleSave();
+  const champ = store.profiles.get(T.top[0]); if (champ) champ.tw = (champ.tw || 0) + 1;
+  places(T);
+  for (const pid of T.top) deps.tell(pid, { t: 'me' });
+  store.invalidateBoards(); store.scheduleSave();
   post('done', T);
   trim();
 }
+// Long-term records on the profile: 2nd and 3rd places and the tournament ranking's points (10 / 6 / 4 for the
+// podium, +1 for everyone who played). T.rw marks a tournament whose records are in, so none is counted twice.
+const PLACE_PTS = [10, 6, 4];
+function places(T) {
+  if (T.rw) return;
+  T.rw = 1;
+  for (const pid of new Set(T.seed || [])) { const p = store.profiles.get(pid); if (p) p.tpts = (p.tpts || 0) + 1; }
+  T.top.forEach((pid, i) => { const p = store.profiles.get(pid); if (!p) return; p.tpts = (p.tpts || 0) + PLACE_PTS[i]; if (i === 1) p.t2 = (p.t2 || 0) + 1; if (i === 2) p.t3 = (p.t3 || 0) + 1; });
+}
+/** The winner of the latest finished tournament (they wear the crown until the next one). */
+export function champ() { let best = null; for (const T of tours) if (T.st === 'done' && T.top?.[0] && (!best || (T.endAt || 0) > (best.endAt || 0))) best = T; return best?.top[0] || null; }
 function trim() { const old = tours.filter(T => T.st === 'done' || T.st === 'off'); if (old.length > KEEP) { const drop = new Set(old.slice(KEEP)); tours = tours.filter(T => !drop.has(T)); } }
 
 function decideKo(T, m, w, how = {}) {

@@ -35,6 +35,8 @@ function player(name, token) {
       if (m.t === 'tour' && m.op === 'test') p.test = m.v;
       if (m.t === 'tour' && m.op === 'prize') p.prize = m;
       if (m.t === 'tour' && m.op === 'call') p.calls.push(m);
+      if (m.t === 'rankings') p.rk = m;
+      if (m.t === 'player') p.prof = m.p;
     };
   });
   p.ask = async m => { p.auth = null; p.send(m); await until(() => p.auth, m.t); return p.auth; };
@@ -133,6 +135,14 @@ await until(() => ana.prize && bo.prize && cy.prize, 'prizes are told');
 if (ana.prize.coins !== 150 || bo.prize.coins !== 90 || cy.prize.coins !== 10) fail('prizes: 150 for 1st, 80 + 10 for 2nd who played, 10 for Cy ' + [ana.prize.coins, bo.prize.coins, cy.prize.coins]);
 await until(() => ana.me.coins === coins0 + 150 && ana.me.tw === 1, 'ana is paid and has a tournament win');
 if (dee.prize) fail('Dee never played');
+// Long-term records: 2nd place on Bo's profile, ranking points (10 / 6 + 1 each for playing), the champion's crown.
+await until(() => bo.me.t2 === 1, 'Bo has a 2nd place');
+guest.rk = null; guest.send({ t: 'rankings', game: 'tour' }); await until(() => guest.rk, 'tournament ranking');
+if (guest.rk.rows[0]?.name !== 'Ana' || guest.rk.rows[0].pts !== 11 || guest.rk.rows[1]?.name !== 'Bo' || guest.rk.rows[1].pts !== 7) fail('tournament ranking ' + JSON.stringify(guest.rk.rows.map(r => [r.name, r.pts])));
+guest.prof = null; guest.send({ t: 'player', pt: ana.me.pt }); await until(() => guest.prof, 'Ana\'s card');
+if (!guest.prof.fl?.cup || guest.prof.tw !== 1 || guest.prof.tpts !== 11) fail('Ana wears the crown and has her record ' + JSON.stringify({ fl: guest.prof.fl, tw: guest.prof.tw, tpts: guest.prof.tpts }));
+guest.prof = null; guest.send({ t: 'player', pt: bo.me.pt }); await until(() => guest.prof, 'Bo\'s card');
+if (guest.prof.fl?.cup || guest.prof.t2 !== 1) fail('Bo: no crown, one 2nd place');
 
 // Discord: the open, check-in, start and result posts, in Polish, with @here on the first three.
 const posts = await boss.hook('posts');
