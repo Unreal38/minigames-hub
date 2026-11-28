@@ -7,7 +7,7 @@ import { youArrow, animateArrow, disposeArrow } from '../../marker3d.js';
 import { toonify, toonMat, skyDome, clouds as cloudSea, island, birds, petals, createFx, disposeToon, STAR, DOT, nightScene } from '../../scenery3d.js';
 import { LEN, R, MM, REACH, LIFT_MAX, KINDS, PETS, colOf, ends } from './rules.js';
 
-const FALL = '#ff3d9a', RIM = { sel: 2, hover: 1.9, fall: 1.6 }; // at-risk sticks glow pink, the picked one gold
+const FALL = '#ff3d9a', TOUCHC = '#ff9a1f', RIM = { sel: 1.4, hover: 1.35, fall: 1.25, touch: 1.25 }; // at-risk sticks glow pink, the picked one gold
 const INK = '#3b2219', SKY_TOP = '#6fbdf2', SKY_LOW = '#d6f1ff', FLOOR = -1.75, AVS = .95;
 const TR = 4.4, CLOTH = '#5d4468', CLOTH2 = '#6a4f76', WOOD = '#d9955b', WOOD_TOP = '#e9ad74', WOOD_DK = '#a8683c', TIP = '#fff1d6';
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -103,9 +103,9 @@ export function createScene(canvas, cb = {}) {
   // the picked stick: a thick bright rim, and a faint copy of it that shows through the sticks lying over it
   const selMat = new THREE.MeshBasicMaterial({ color: '#ffe23d', side: THREE.BackSide }), hovMat = new THREE.MeshBasicMaterial({ color: '#fff6d8', side: THREE.BackSide });
   // a stick that would move if the picked one came out: its own colour, clear of every stick colour and of the gold
-  const fallMat = new THREE.MeshBasicMaterial({ color: FALL, side: THREE.BackSide });
-  const xray = new THREE.Mesh(inks.plain = inkGeo('plain'), new THREE.MeshBasicMaterial({ color: '#ffe23d', transparent: true, opacity: .16, depthTest: false, depthWrite: false })); xray.renderOrder = 6; xray.scale.set(1, 1.9, 1.9);
-  const EM = { none: new THREE.Color(0x000000), sel: new THREE.Color('#8a6a00'), fall: new THREE.Color(FALL).multiplyScalar(.2), touch: new THREE.Color('#6a3c00'), hover: new THREE.Color('#4a4636') };
+  const fallMat = new THREE.MeshBasicMaterial({ color: FALL, side: THREE.BackSide }), touchMat = new THREE.MeshBasicMaterial({ color: TOUCHC, side: THREE.BackSide });
+  const xray = new THREE.Mesh(inks.plain = inkGeo('plain'), new THREE.MeshBasicMaterial({ color: '#ffe23d', transparent: true, opacity: .16, depthTest: false, depthWrite: false })); xray.renderOrder = 6; xray.scale.set(1, 1.3, 1.3);
+  const EM = { none: new THREE.Color(0x000000), sel: new THREE.Color('#8a6a00'), fall: new THREE.Color(FALL).multiplyScalar(.2), touch: new THREE.Color(TOUCHC).multiplyScalar(.3), hover: new THREE.Color('#4a4636') };
 
   function clearSticks() {
     xray.removeFromParent();
@@ -366,12 +366,12 @@ export function createScene(canvas, cb = {}) {
       if (g !== k.glow) {
         k.glow = g; k.mat.emissive.copy(EM[g]);
         const rim = RIM[g] || 1;
-        k.out.material = g === 'sel' ? selMat : g === 'hover' ? hovMat : g === 'fall' ? fallMat : inkMat; k.out.scale.set(1, rim, rim);
+        k.out.material = g === 'sel' ? selMat : g === 'hover' ? hovMat : g === 'fall' ? fallMat : g === 'touch' ? touchMat : inkMat; k.out.scale.set(1, rim, rim);
         if (g === 'sel') { xray.geometry = k.out.geometry; k.m.add(xray); } else if (xray.parent === k.m) k.m.remove(xray);
         moving = true;
       }
-      if (g === 'sel' && !reduced) { const p = 2 + Math.sin(T * 6) * .22; k.out.scale.set(1, p, p); moving = true; }
-      else if (g === 'fall' && !reduced) { const p = RIM.fall + Math.sin(T * 9 + id) * .15; k.out.scale.set(1, p, p); moving = true; }
+      if (g === 'sel' && !reduced) { const p = RIM.sel + Math.sin(T * 6) * .1; k.out.scale.set(1, p, p); moving = true; }
+      else if (g === 'fall' && !reduced) { const p = RIM.fall + Math.sin(T * 9 + id) * .08; k.out.scale.set(1, p, p); moving = true; }
     }
     if (moving) for (const k of sticks) if (k.g.visible) place(k, T);
 
@@ -423,7 +423,7 @@ export function createScene(canvas, cb = {}) {
       canvas.removeEventListener('pointerup', up); canvas.removeEventListener('pointercancel', up); canvas.removeEventListener('wheel', wheel);
       removeEventListener('keydown', keyDown); removeEventListener('keyup', keyUp);
       for (const p of players) disposeAvatar(p.av);
-      clearSticks(); for (const k in geos) geos[k].dispose(); for (const k in inks) inks[k].dispose(); inkMat.dispose(); selMat.dispose(); hovMat.dispose(); fallMat.dispose(); xray.material.dispose();
+      clearSticks(); for (const k in geos) geos[k].dispose(); for (const k in inks) inks[k].dispose(); inkMat.dispose(); selMat.dispose(); hovMat.dispose(); fallMat.dispose(); touchMat.dispose(); xray.material.dispose();
       disposeToon(land); disposeToon(tg); disposeToon(cloudRing); fx.dispose(); disposeArrow(arrow); renderer.dispose(); renderer.forceContextLoss();
     },
   };

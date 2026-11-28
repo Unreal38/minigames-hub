@@ -8,7 +8,7 @@ import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { nameHtml, titleHtml, pbRowCls, pbRows, frameCls, rowBg } from '../../cosmetics.js';
 import { tagPlacer, tagFace, tagCls, tagBg } from '../../nametag.js';
-import { MM, FULL, SET_BONUS, colOf, kindName, startPull, advance, isClear, atRisk } from './rules.js';
+import { MM, FULL, SET_BONUS, colOf, kindName, startPull, advance, isClear, atRisk, contacts } from './rules.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -80,7 +80,7 @@ export function mount(app, ctx) {
     if (!canPull()) return null;
     const stick = pile[id]; if (!stick || stick.g) return null;
     const st = startPull(pile, stick, S.carry?.[id] || 0);
-    held = { id, st, at: performance.now(), clear: false, risk: riskOf(id, st) }; queue = []; peek = null;
+    held = { id, st, at: performance.now(), clear: false, risk: riskOf(id, st), now: contacts(pile, st) }; queue = []; peek = null;
     ctx.act({ t: 'pick', id });
     sfx.tick(); paintGlow(); renderBar();
     return st;
@@ -96,7 +96,8 @@ export function mount(app, ctx) {
     if (m > before + .5 && now - lastRub > 90) { lastRub = now; sfx.land(); }
     if (m >= FULL) { flush(); waiting = now; paintMeter(); return false; } // the server will say so too
     if (queue.length >= 12 || now >= flushAt) flush();
-    const clear = isClear(pile, held.st);
+    const clear = isClear(pile, held.st), touchNow = contacts(pile, held.st);
+    if (touchNow.join() !== held.now.join()) { held.now = touchNow; paintGlow(); renderBar(); } // which sticks it touches right now
     if (clear !== held.clear) { held.clear = clear; if (clear) sfx.pop(); renderBar(); }
     paintMeter();
     return true;
@@ -124,7 +125,7 @@ export function mount(app, ctx) {
   }
   function paintGlow() {
     if (!scene) return;
-    if (held) scene.setGlow(glowOf(held.id, held.risk));
+    if (held) scene.setGlow({ sel: held.id, fall: S.hints ? held.risk.fall : [], touch: held.now }); // touching now: always shown, it is what keeps the stick from being free
     else if (S?.pull && pile?.[S.pull.id] && !pile[S.pull.id].g) scene.setGlow(glowOf(S.pull.id, riskOf(S.pull.id)));
     else scene.setGlow(peek);
   }
@@ -191,10 +192,12 @@ export function mount(app, ctx) {
     else if (S.turn === S.me) {
       if (my.bot) html = L('A bot is playing for you. Welcome back!', 'Bot gra za ciebie. Witaj z powrotem!');
       else if (held) {
-        const s = pile[held.id], top = held.risk.fall.length, side = held.risk.touch.length;
+        const s = pile[held.id], fall = S.hints ? held.risk.fall.length : 0, now = held.now.length;
+        const head = `<b>${kindName(s)}</b> · ${L(cnt(s.pts, 'point', 'points'), cnt(s.pts, 'punkt', 'punkty', 'punkt', 'punkty', 'punktów'))}. `;
+        const touching = now ? L(`Touching <em class="bk-touch">${cnt(now, 'stick', 'sticks')}</em>.`, `Dotyka: <em class="bk-touch">${cnt(now, 'bierka', 'bierki', 'bierka', 'bierki', 'bierek')}</em>.`) : L('Pull it out slowly.', 'Wyciągaj powoli.');
+        const risky = fall ? ' ' + L(`<em class="bk-fall">${cnt(fall, 'stick', 'sticks')}</em> would move with it!`, `Ruszy się z nią: <em class="bk-fall">${cnt(fall, 'bierka', 'bierki', 'bierka', 'bierki', 'bierek')}</em>!`) : '';
         if (held.clear) html = L('<b>It is free!</b> Let go to take it.', '<b>Wolna!</b> Puść, żeby ją zabrać.');
-        else if (!S.hints) html = L(`<b>${kindName(s)}</b> · ${cnt(s.pts, 'point', 'points')}. Pull it out slowly.`, `<b>${kindName(s)}</b> · ${cnt(s.pts, 'punkt', 'punkty', 'punkt', 'punkty', 'punktów')}. Wyciągaj powoli.`);
-        else html = `<b>${kindName(s)}</b> · ${L(cnt(s.pts, 'point', 'points'), cnt(s.pts, 'punkt', 'punkty', 'punkt', 'punkty', 'punktów'))}. ` + (top ? L(`<em class="bk-fall">${cnt(top, 'stick', 'sticks')}</em> would move with it: risky!`, `Ruszy się z nią: <em class="bk-fall">${cnt(top, 'bierka', 'bierki', 'bierka', 'bierki', 'bierek')}</em>. Ryzykowne!`) : side ? L(`It touches ${cnt(side, 'stick', 'sticks')}. Pull slowly.`, `Dotyka: ${cnt(side, 'bierka', 'bierki', 'bierka', 'bierki', 'bierek')}. Wyciągaj powoli.`) : L('Nothing touches it.', 'Nic jej nie dotyka.'));
+        else html = head + touching + risky;
       }
       else if (!turnOpen() || waiting) html = L('You are up next.', 'Zaraz twoja kolej.');
       else if (liftOn && showLift) html = L('<b>Lifting.</b> Drag a stick upwards to raise it out of the pile. One lift a turn.', '<b>Podnoszenie.</b> Przeciągnij bierkę w górę, żeby unieść ją ze stosu. Jedno podniesienie na kolejkę.');

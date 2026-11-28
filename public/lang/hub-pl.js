@@ -618,7 +618,7 @@ export const GAMES_PL = {
       <li>Bierkę można puścić w stosie. Wraca wtedy na miejsce, ale to, o co się już otarła, <b>zostaje na wskaźniku</b> do końca twojej kolejki.</li>
       <li><b>Punkty</b>: zwykła bierka 1, Liść 2, Fala 3, Żar 4, Iskra 5, <b>bierka ze zwierzakiem</b> 8, <b>Hak</b> 10 i <b>Król</b> 20. Komplet czterech bierek ze zwierzakami daje <b>10 punktów więcej</b>.</li>
       <li>Kto ma <b>Hak</b>, może raz na kolejkę <b>podnieść</b> bierkę prosto do góry, zamiast ją przesuwać: naciśnij „Podnieś” (albo przytrzymaj Shift) i przeciągnij w górę. Podnoszenie nie ociera bierek pod spodem.</li>
-      <li>Bierka, którą wskazujesz albo trzymasz, dostaje jasny <b>obrys</b>. Przy włączonych podpowiedziach (ustawienia stołu) bierki, które <b>ruszą się</b>, jeśli ją zabierzesz (leżą na niej albo spadną, gdy jej zabraknie), świecą na <b>różowo</b>, a pozostałe, których tylko dotyka, na pomarańczowo.</li>
+      <li>Bierka, którą wskazujesz albo trzymasz, dostaje jasny <b>obrys</b>. Przy włączonych podpowiedziach (ustawienia stołu) bierki, które <b>ruszą się</b>, jeśli ją zabierzesz (leżą na niej albo spadną, gdy jej zabraknie), świecą na <b>różowo</b>, a pozostałe, których tylko dotyka, na pomarańczowo. Podczas wyciągania na pomarańczowo świecą bierki, których twoja bierka dotyka w tej chwili.</li>
       <li>Przeciągnij stół albo niebo, żeby <b>obrócić widok</b>. Kółko myszy albo rozsunięcie palców przybliża.</li>
       <li>Masz <b>30 sekund</b> na każdą bierkę (ustawienia stołu). Gdy czas minie, kolejka przechodzi dalej.</li>
       <li>Gdy stół jest pusty, wygrywa <b>największa liczba punktów</b>. Przy trzech stosach punkty się sumują. Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
