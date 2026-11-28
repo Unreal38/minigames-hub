@@ -1391,14 +1391,17 @@ export function headSpots() {
     if (!ud.hb) { // the head's bounds (hair and hats included), once, in the head's own space
       partBox(h, _nsB); if (_nsB.isEmpty()) continue;
       _nsB.getBoundingSphere(_nsS); h.getWorldScale(_nsK);
-      ud.hb = { c: h.worldToLocal(_nsS.center.clone()), r: _nsS.radius / (_nsK.x || 1) };
+      ud.hb = { c: h.worldToLocal(_nsS.center.clone()), r: _nsS.radius / (_nsK.x || 1), t: h.worldToLocal(new THREE.Vector3(_nsS.center.x, _nsB.max.y, _nsS.center.z)) };
     }
     _nsC.copy(ud.hb.c); h.localToWorld(_nsC); h.getWorldScale(_nsK);
     const r = ud.hb.r * _nsK.x * .72;
     _nsU.setFromMatrixColumn(camera.matrixWorld, 1).normalize().multiplyScalar(r).add(_nsC);
     _nsC.project(camera); _nsU.project(camera);
     if (_nsC.z > 1 || Math.abs(_nsC.x) > 1.3 || Math.abs(_nsC.y) > 1.3) continue;
-    spots.push({ x: (_nsC.x + 1) / 2 * W, y: (1 - _nsC.y) / 2 * H, r: Math.abs(_nsU.y - _nsC.y) / 2 * H, el, root });
+    // the top of the hair (or hat) on screen: seen from above it sits much closer to the centre than the radius says
+    _nsK.copy(ud.hb.t); h.localToWorld(_nsK); _nsK.project(camera);
+    const y = (1 - _nsC.y) / 2 * H, rp = Math.abs(_nsU.y - _nsC.y) / 2 * H;
+    spots.push({ x: (_nsC.x + 1) / 2 * W, y, r: rp, top: Math.max(y - rp, Math.min(y, (1 - _nsK.y) / 2 * H)), el, root });
   }
   return spots;
 }
