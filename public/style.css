@@ -2494,16 +2494,37 @@ body.night .tc-left .tcd.big { color: #ffb547; }
 
 /* the tournament page */
 .sheet.tourpage { width: min(920px, 100%); gap: 14px; }
-.tp-head { display: flex; align-items: center; gap: 14px; }
+.tp-head { display: flex; align-items: center; gap: 14px; padding-right: 48px; } /* room for the sheet's × */
 .tp-head img { width: 120px; aspect-ratio: 32 / 15; object-fit: cover; border-radius: 12px; border: 3px solid var(--ink); flex: none; }
 .tp-head h2 { margin: 0; font-size: 30px; line-height: 1.1; }
 .tp-kick { margin: 0 0 2px; font-family: var(--fd); font-weight: 700; font-size: 13px; letter-spacing: .05em; text-transform: uppercase; color: var(--soft-tx); }
 .tourpage .tb-chips { margin: 0; }
 .tourpage h3 { margin: 6px 0 0; font-size: 19px; }
 .tp-acts { gap: 8px; flex-wrap: wrap; }
-.tp-acts .chip.good, .chip.good { background: var(--mint); color: var(--ink); border-color: var(--ink); }
+.chip.good, .sheet .chip.good, body.sky.night:not(.in-game) .sheet .chip.good { background: var(--mint); color: var(--ink); border-color: var(--ink); }
+.tp-acts .chip { display: inline-flex; align-items: center; min-height: 44px; box-sizing: border-box; }
+.tp-info { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border: 2px solid var(--card-edge); border-radius: 16px; background: var(--card); }
 .tp-rules, .tp-prize { margin: 0; font-size: 15px; line-height: 1.45; }
-.tp-prize { color: var(--soft-tx); }
+.tp-prize { color: var(--soft-tx); font-size: 13.5px; }
+.tp-prizes { display: flex; flex-wrap: wrap; gap: 6px; }
+.tp-prizes span { display: inline-flex; align-items: center; gap: 5px; padding: 3px 12px 3px 6px; border-radius: 999px; border: 2px solid var(--ink); background: #ffe27a; color: #3b2219; }
+.tp-prizes span:nth-child(2) { background: #e6ecf5; } .tp-prizes span:nth-child(3) { background: #f4d2b0; }
+.tp-prizes span:last-child:has(small) { background: var(--paper); color: var(--on-paper); border-color: var(--card-edge); }
+.tp-prizes i { font-style: normal; font-size: 17px; }
+.tp-prizes b { font-family: var(--fd); font-size: 15px; }
+.tp-prizes small { font-size: 13px; color: var(--soft-tx); }
+.tp-foot { margin-top: 6px; gap: 8px; }
+@media (max-width: 560px) {
+  .tp-head { gap: 10px; align-items: flex-start; }
+  .tp-head img { width: 84px; border-width: 2.5px; border-radius: 10px; }
+  .tp-head h2 { font-size: 23px; }
+  .tp-kick { font-size: 11.5px; }
+  .tourpage .tb-chips > span { font-size: 12.5px; }
+  .tp-acts > * { flex: 1 1 auto; justify-content: center; }
+  .tp-foot > .btn { flex: 1 1 0; }
+  .tp-ent { font-size: 13px; }
+  .tp-pl { min-width: 0; flex: 1 1 0; padding: 8px 6px; }
+}
 .tp-podium { display: flex; justify-content: center; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
 .tp-pl { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 12px; border: 3px solid var(--ink); border-radius: 16px; background: var(--card); min-width: 120px; }
 .tp-pl > b { font-family: var(--fd); font-size: 26px; line-height: 1; }
@@ -2585,5 +2606,42 @@ body.night .tlobby { background: linear-gradient(120deg, #5a4318, #3d2c55); colo
 .ta-hook { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
 .ta-hook h3 { margin: 0; }
 .ta-hookin { display: flex; gap: 8px; } .ta-hookin .field { flex: 1; min-width: 0; min-height: 42px; font-size: 14px; }
-.ta-on { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.ta-on code { font-size: 12px; background: var(--card); border: 1.5px solid var(--card-edge); border-radius: 6px; padding: 1px 6px; overflow-wrap: anywhere; }
+.ta-on { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 2px solid var(--card-edge); border-radius: 14px; background: var(--card); }
+.ta-on p { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.ta-on b { color: var(--good-tx, #2f8a64); font-family: var(--fd); }
+.ta-on code { font-size: 12px; color: var(--soft-tx); overflow-wrap: anywhere; min-width: 0; }
+.ta-on .ta-acts { grid-column: auto; }
+.ta-opt > b { font-family: var(--fd); font-size: 14px; }
+
+/* tournaments: polish pass */
+.tm.bye .tm-by { font-family: var(--fd); font-size: 12px; font-weight: 600; font-style: italic; }
+.tc-kick { padding: 0 40px; }
+.tc-vs.many { display: grid; grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr)); gap: 10px 6px; width: 100%; }
+.tc-vs.many .tc-p { max-width: none; min-width: 0; }
+.tc-vs.many .tc-p b { font-size: 13px; }
+.tc-vs.many .tc-p.tc-self b { color: var(--acc-tx); }
+@media (max-width: 560px) {
+  .tp-foot > .btn { font-size: 16px; min-height: 48px; }
+  .tcall h2 { font-size: 26px; }
+  .tc-left .tcd.big { font-size: 40px; }
+  .tlobby { padding: 10px 12px; }
+  .tl-kick { font-size: 14px; }
+}
+@media (max-width: 560px) {
+  .tp-head { padding-right: 52px; }
+  .tp-head img { display: none; } /* the hub band shows the picture; the name gets the room */
+  .tp-foot > .btn { font-size: 15px; white-space: nowrap; padding-left: 10px; padding-right: 10px; }
+}
+/* an open pop-up hides the calm tournament strips (sign-ups, check-in) so they don't sit over it; "Your match is ready" stays */
+body:has(.modal) #sitebar .sb.tsb:not(.hot) { display: none; }
+@media (max-width: 560px) {
+  .tp-podium { flex-wrap: nowrap; gap: 6px; }
+  .tp-pl { min-width: 0; flex: 1 1 0; padding: 8px 6px; }
+  .tp-pl.p1 { padding-top: 14px; }
+  .tp-pl .tm-p { max-width: 100%; justify-content: center; }
+  .tp-pl > b { font-size: 22px; }
+  .tp-pl small { font-size: 12px; text-align: center; }
+}
+.tourpage .tp-ent.me, body.sky.night:not(.in-game) .tourpage .tp-ent.me { background: #ffe27a; color: #3b2219; border-color: var(--ink); }
+.tourpage .tp-ent.me .tm-p, .tourpage .tp-ent.me > i { color: #3b2219; }
+@media (max-width: 560px) { .tp-foot > .btn { font-size: 14px; } }

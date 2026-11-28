@@ -178,7 +178,9 @@ function paintCallBody(c) {
   const T = c.T, m = c.m, me = myPt(), r = T.rounds.findIndex(row => row.includes(m));
   const others = m.p.filter(pt => pt !== me), ent = pt => T.ents.find(e => e.pt === pt) || { name: nameOf(T, pt) };
   const html = `<p class="tc-kick">🏆 ${esc(pick(T.name))} · ${esc(roundName(T, r, m))}</p>
-    <div class="tc-vs">${[me, ...others].slice(0, 6).map((pt, i) => `${i === 1 ? '<span class="tc-x">vs</span>' : ''}<span class="tc-p">${d.avatarHtml(ent(pt).color, ent(pt).av, 56)}<b>${esc(ent(pt).name)}</b></span>`).join('')}</div>
+    ${others.length > 1 // a heat table: everyone at it, smaller, no "vs"
+      ? `<div class="tc-vs many" style="--n:${others.length + 1 <= 4 ? others.length + 1 : Math.ceil((others.length + 1) / 2)}">${[me, ...others].slice(0, 8).map(pt => `<span class="tc-p${pt === me ? ' tc-self' : ''}">${d.avatarHtml(ent(pt).color, ent(pt).av, 44)}<b>${esc(ent(pt).name)}</b></span>`).join('')}</div>`
+      : `<div class="tc-vs">${[me, ...others].map((pt, i) => `${i === 1 ? '<span class="tc-x">vs</span>' : ''}<span class="tc-p">${d.avatarHtml(ent(pt).color, ent(pt).av, 56)}<b>${esc(ent(pt).name)}</b></span>`).join('')}</div>`}
     <h2>${L('Your match is ready', 'Twój mecz czeka')}</h2>
     <div class="tc-left">${cd(Date.now() + m.left - (Date.now() - at), 'big')}</div>
     <p class="tc-note">${L('Come to your table before the time runs out, or it counts as a walkover.', 'Przyjdź do stołu, zanim skończy się czas, inaczej przegrywasz walkowerem.')}</p>
@@ -256,13 +258,14 @@ function paintSheet() {
     <div class="tb-chips"><span>${fmtText(T)}</span><span>📅 ${esc(when(T.start))}</span><span class="prize">${prizeText(T)}</span>${T.minLv ? `<span>${L(`Level ${T.minLv}+`, `Poziom ${T.minLv}+`)}</span>` : ''}</div>
     ${top}
     ${acts.length ? `<div class="row tp-acts">${acts.join('')}</div>` : ''}
-    <p class="tp-rules">${esc(rulesText(T))}</p>
-    <p class="tp-prize">${L('Prizes come from the house: nobody pays to play.', 'Nagrody funduje strona: nikt nie płaci za udział.')} ${[0, 1, 2].filter(i => T.prize.c[i]).map(i => `${ord(i + 1)}: ${T.prize.c[i]}`).join(' · ')}${T.prize.all ? ` · ${L('everyone who plays', 'każdy, kto zagra')}: ${T.prize.all}` : ''} ${L('coins.', 'monet.')} ${L('The winner gets a tournament win towards the Cup Winner title.', 'Zwycięzca zdobywa wygraną turniejową, która liczy się do tytułu Zdobywca pucharu.')}</p>
+    <div class="tp-info"><p class="tp-rules">${esc(rulesText(T))}</p>
+      <div class="tp-prizes" aria-label="${L('Prizes', 'Nagrody')}">${['🥇', '🥈', '🥉'].map((md, i) => T.prize.c[i] ? `<span><i aria-hidden="true">${md}</i><b>${T.prize.c[i]}</b></span>` : '').join('')}${T.prize.all ? `<span><i aria-hidden="true">🎟️</i><b>${T.prize.all}</b><small>${L('everyone who plays', 'każdy, kto zagra')}</small></span>` : ''}</div>
+      <p class="tp-prize">${L('Coins from the house: nobody pays to play. The winner gets a step towards the Cup Winner title.', 'Monety funduje strona: nikt nie płaci za udział. Zwycięzca zdobywa krok do tytułu Zdobywca pucharu.')}</p></div>
     ${bracket}
     <h3>${T.st === 'signup' || T.st === 'checkin' ? L(`Signed up · ${T.ents.length}/${T.max}`, `Zapisani · ${T.ents.length}/${T.max}`) : L(`Players · ${ents.length}`, `Gracze · ${ents.length}`)}</h3>
     <div class="tp-ents">${ents.map((e, i) => `<span class="tp-ent${e.pt === myPt() ? ' me' : ''}">${T.seed.length ? `<i>${i + 1}</i>` : ''}${pill(T, e.pt)}</button>${T.st === 'checkin' ? (e.in ? '<small class="good">✓</small>' : '<small>…</small>') : ''}${admin && (T.st === 'signup' || T.st === 'checkin' || T.st === 'live') ? `<button type="button" class="tp-x" data-tour="kick" data-id="${T.id}" data-pt="${e.pt}" title="${L('Take out of the tournament', 'Wypisz z turnieju')}">×</button>` : ''}</span>`).join('') || `<p class="rknote">${L('Nobody yet. Be the first!', 'Jeszcze nikt. Bądź pierwszy!')}</p>`}</div>
     ${log.length ? `<h3>${L('Changes', 'Zmiany')}</h3><ul class="tp-log">${log.map(x => `<li><time>${hm(x.at)}</time> ${esc(LOG(x, T))}</li>`).join('')}</ul>` : ''}
-    <div class="row" style="margin-top:14px"><button type="button" class="btn w" data-tour="hist">${L('Past tournaments', 'Poprzednie turnieje')}</button><button type="button" class="btn" data-tour="close">${L('Done', 'Gotowe')}</button></div>`;
+    <div class="row tp-foot"><button type="button" class="btn w" data-tour="hist">${L('Past tournaments', 'Poprzednie turnieje')}</button><button type="button" class="btn" data-tour="close">${L('Done', 'Gotowe')}</button></div>`;
   if (box.dataset.h !== html) { morph(box, html); box.dataset.h = html; }
 }
 // ---------- past tournaments ----------
@@ -365,9 +368,10 @@ function paintAdmin() {
   }
   const hook = cfg ? `<section class="ta-hook"><h3>${L('Discord', 'Discord')}</h3>
     <p class="nthint">${L('Paste a channel webhook (Discord: channel settings › Integrations › Webhooks › New webhook › Copy webhook URL). The site posts there when sign-ups open, check-in starts, the tournament starts and someone wins.', 'Wklej webhook kanału (Discord: ustawienia kanału › Integracje › Webhooki › Nowy webhook › Kopiuj URL webhooka). Strona napisze tam, gdy ruszą zapisy, zacznie się potwierdzanie obecności, wystartuje turniej i ktoś wygra.')}</p>
-    ${cfg.on && !adm.hookEdit ? `<p class="ta-on">✓ ${L('Connected', 'Połączono')} <code>${esc(cfg.hook)}</code> <button type="button" class="btn sm w" data-ta="hookedit">${L('Change', 'Zmień')}</button> <button type="button" class="btn sm w" data-ta="hooktest">${L('Send a test', 'Wyślij próbę')}</button> <button type="button" class="btn sm w" data-ta="hookoff">${L('Disconnect', 'Odłącz')}</button></p>`
+    ${cfg.on && !adm.hookEdit ? `<div class="ta-on"><p><b>✓ ${L('Connected', 'Połączono')}</b> <code>${esc(cfg.hook)}</code></p><div class="ta-acts"><button type="button" class="btn sm w" data-ta="hookedit">${L('Change', 'Zmień')}</button><button type="button" class="btn sm w" data-ta="hooktest">${L('Send a test', 'Wyślij próbę')}</button><button type="button" class="btn sm w" data-ta="hookoff">${L('Disconnect', 'Odłącz')}</button></div></div>`
       : `<div class="ta-hookin"><input class="field" id="ta-hook" placeholder="https://discord.com/api/webhooks/…" autocomplete="off" spellcheck="false"><button type="button" class="btn sm" data-ta="hooksave">${L('Save', 'Zapisz')}</button></div>`}
-    <div class="pills ta-hl"><button type="button" data-ta="hlang" data-v="pl" aria-pressed="${cfg.lang === 'pl'}">${L('Posts in Polish', 'Posty po polsku')}</button><button type="button" data-ta="hlang" data-v="en" aria-pressed="${cfg.lang === 'en'}">${L('Posts in English', 'Posty po angielsku')}</button><button type="button" data-ta="hping" aria-pressed="${cfg.ping}">${L('Ping @here', 'Oznacz @here')}</button></div></section>` : '';
+    <div class="ta-opt"><b>${L('Language of the posts', 'Język postów')}</b><div class="pills ta-hl"><button type="button" data-ta="hlang" data-v="pl" aria-pressed="${cfg.lang === 'pl'}">Polski</button><button type="button" data-ta="hlang" data-v="en" aria-pressed="${cfg.lang === 'en'}">English</button></div></div>
+    <div class="ta-opt"><b>${L('Ping the channel (@here) when sign-ups open, check-in starts and the cup starts', 'Oznaczaj kanał (@here), gdy ruszają zapisy, obecność i turniej')}</b><div class="pills ta-hl"><button type="button" data-ta="hping" aria-pressed="${cfg.ping}">${cfg.ping ? L('On', 'Wł.') : L('Off', 'Wył.')}</button></div></div></section>` : '';
   const html = f ? formHtml || `<p class="rknote">${L('Loading…', 'Wczytywanie…')}</p>`
     : `<p class="rknote">${L('Pick a game, open sign-ups, and the site runs the rest: check-in, the bracket, calling each match to its own table, walkovers and house prizes.', 'Wybierz grę i otwórz zapisy, a resztą zajmie się strona: obecnością, drabinką, wzywaniem każdego meczu do osobnego stołu, walkowerami i nagrodami.')}</p>
       <div class="row"><button type="button" class="btn p" data-ta="new">🏆 ${L('New tournament', 'Nowy turniej')}</button></div>
