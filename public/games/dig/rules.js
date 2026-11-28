@@ -40,4 +40,18 @@ export function around(i, w, h) {
   }
   return out;
 }
+// The star hint: a dug empty tile shows a star when a gem is still buried within this many tiles of it
+// (2 = anywhere in the 5x5 square round it). dugOnly: only a tile someone dug by hand gets the hint, not the ones
+// that open by themselves, so a star only ever comes from a miss. The old hint (reach 1 on every empty tile)
+// pointed straight at gems: Kuba found it far too easy (2026-11-27).
+export const HINT = { reach: 2, dugOnly: true };
+export function near(i, w, h, r = HINT.reach) {
+  const x = i % w, y = (i / w) | 0, out = [];
+  for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+    if (!dx && !dy) continue;
+    const nx = x + dx, ny = y + dy;
+    if (nx >= 0 && ny >= 0 && nx < w && ny < h) out.push(ny * w + nx);
+  }
+  return out;
+}
 export const isGem = k => k === KIND.gem || k === KIND.big || k === KIND.chest;

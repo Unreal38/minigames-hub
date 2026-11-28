@@ -316,12 +316,12 @@ export const GAMES_PL = {
   dig: {
     name: 'Poszukiwacze skarbów', start: 'Zacznij kopać', openSeat: 'Jeśli nikt nie dołączy, kopie tu bot',
     pitch: 'Na zmianę przekopujcie łąkę w poszukiwaniu klejnotów i złotej skrzyni. Jak Saper, tylko ze znajomymi.',
-    howto: `Łąka kryje klejnoty, złotą skrzynię i pułapki. Kopiecie po kolei, po jednym polu. Puste pola pokazują, ile pułapek ich dotyka, jak w Saperze, i błyszczą, gdy obok leży klejnot. Znajdź klejnot, a kopiesz jeszcze raz; traf na pułapkę, a tracisz punkty. Wygrywa najwięcej punktów w chwili znalezienia ostatniego klejnotu.`,
+    howto: `Łąka kryje klejnoty, złotą skrzynię i pułapki. Kopiecie po kolei, po jednym polu. Puste pola pokazują, ile pułapek ich dotyka, jak w Saperze. Pole odkopane własnoręcznie dostaje też gwiazdkę, jeśli gdzieś blisko leży klejnot. Znajdź klejnot, a kopiesz jeszcze raz; traf na pułapkę, a tracisz punkty. Wygrywa najwięcej punktów w chwili znalezienia ostatniego klejnotu.`,
     rules: `<ol>
       <li>Pole porasta trawa. Pod nią leżą <b>klejnoty</b> (1 punkt), <b>duże klejnoty</b> (3), jedna <b>złota skrzynia</b> (5) i trochę <b>pułapek</b>. Środek jest odkopany od początku. Wolne miejsca zajmują boty.</li>
       <li>W swojej turze <b>odkop jedno pole z trawą</b>. Na komputerze kliknij je. Na telefonie dotknij raz, żeby je wybrać, i drugi raz, żeby kopać.</li>
       <li>Puste pole pokazuje <b>liczbę</b>: ile pułapek go dotyka, bokiem albo rogiem. Brak liczby oznacza brak pułapek dookoła, a puste pola obok odkrywają się same.</li>
-      <li><b>Błysk</b> na pustym polu oznacza, że tuż obok wciąż leży zakopany klejnot.</li>
+      <li>Puste pole, które <b>odkopiesz sam</b>, dostaje <b>gwiazdkę</b>, jeśli w odległości do dwóch pól, gdziekolwiek w kwadracie 5×5 wokół niego, wciąż leży zakopany klejnot. Pusty kontur gwiazdki oznacza, że w tym kwadracie nie ma klejnotu. Pola, które odkrywają się same, nie dostają gwiazdki.</li>
       <li>Wykop klejnot albo skrzynię, a <b>kopiesz jeszcze raz</b>. Puste pole kończy turę.</li>
       <li><b>Pułapka</b> zabiera <b>4 punkty</b> (nigdy poniżej zera) i kończy turę.</li>
       <li>Gdy znajdzie się <b>ostatni klejnot</b>, gra się kończy i całe pole zostaje odkryte. <b>Wygrywa najwięcej punktów</b>. Przy remisie ten, kto znalazł więcej, a potem ten, kto trafił na mniej pułapek.</li>

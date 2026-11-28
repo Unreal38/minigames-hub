@@ -126,7 +126,7 @@ export function mount(app, ctx) {
       setHtml(el, `<div class="td-you"><b>${L(`${S.chain ? 'Found one! Dig again' : 'Your turn'}`, `${S.chain ? 'Jest skarb! Kop dalej' : 'Twoja kolej'}`)}</b>
         <span>${L(`${touch ? 'Tap the tile again, or' : innerWidth < 700 ? 'Tap a grass tile, then tap it again to dig.' : 'Click a grass tile to dig it.'}`, `${touch ? 'Dotknij pola jeszcze raz albo' : innerWidth < 700 ? 'Dotknij pola z trawą, a potem dotknij go jeszcze raz, żeby kopać.' : 'Kliknij pole z trawą, żeby je rozkopać.'}`)}</span>
         ${touch ? '<button type="button" class="btn" data-a="dig">' + L('Dig here', 'Kop tutaj') + '</button>' : ''}</div>
-        <p class="td-hint">${stock}<span>${L(`A number counts the <b>traps</b> touching that tile. ${sparkSvg} means a gem is buried next door.`, `Liczba mówi, ile <b>pułapek</b> styka się z tym polem. ${sparkSvg} oznacza, że obok jest zakopany klejnot.`)}</span></p>`);
+        <p class="td-hint">${stock}<span>${L(`A number counts the <b>traps</b> touching that tile. ${sparkSvg} on a tile you dug means a gem is buried within 2 tiles.`, `Liczba mówi, ile <b>pułapek</b> styka się z tym polem. ${sparkSvg} na odkopanym przez kogoś polu oznacza klejnot w odległości do 2 pól.`)}</span></p>`);
     } else setHtml(el, `<p class="td-hint">${stock}</p>`);
     layout();
   }

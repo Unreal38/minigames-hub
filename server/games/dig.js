@@ -1,8 +1,9 @@
 // Treasure Dig: a grass field on a sky island hides gems, a golden chest and traps. Take turns digging one tile.
-// A dug tile with nothing in it shows how many traps are next to it (like Minesweeper) and sparkles if a gem is
-// still buried next door. Find a gem and you dig again; hit a trap and you lose points. When the last gem is
+// A dug tile with nothing in it shows how many traps are next to it (like Minesweeper) and a star if a gem is
+// still buried somewhere close (within HINT.reach tiles, a wide area, so it only says where to look). Only tiles
+// dug by hand get a star (so only after a miss), never the ones that open by themselves. Find a gem and you dig again; hit a trap and you lose points. When the last gem is
 // found, the most points wins. Nothing under the grass is ever sent to a player before it is dug.
-import { KIND, PTS, TRAP, SIZES, MS, waitFor, around, isGem, homeOf, standOf, walkMs } from '../../public/games/dig/rules.js';
+import { KIND, PTS, TRAP, SIZES, MS, HINT, waitFor, around, near, isGem, homeOf, standOf, walkMs } from '../../public/games/dig/rules.js';
 import { randomAv } from '../../public/avatar.js';
 import { cleanSeats } from '../seats.js';
 
@@ -47,7 +48,7 @@ export function create(players, optsIn = {}) {
   const F = makeField(opts.size), now = Date.now();
   const G = {
     game: 'dig', ph: 'play', stage: 'start', gid: Math.random().toString(36).slice(2, 8), seats, opts,
-    w: F.w, h: F.h, cells: F.cells, num: F.num, open: new Array(F.w * F.h).fill(0), by: new Array(F.w * F.h).fill(-1),
+    w: F.w, h: F.h, cells: F.cells, num: F.num, open: new Array(F.w * F.h).fill(0), hand: new Array(F.w * F.h).fill(0), by: new Array(F.w * F.h).fill(-1),
     pts: seats.map(() => 0), st: seats.map(() => ({ gems: 0, big: 0, chest: 0, traps: 0, digs: 0, best: 0 })),
     turn: Math.random() * seats.length | 0, chain: 0, at: seats.map(() => null), dig: null, digN: 0, stageEnd: now + MS.start, startAt: now,
     tEnd: 0, botAt: 0, ev: [], evN: 0, res: null, win: -1, endAt: 0, queue: [],
@@ -80,6 +81,7 @@ function setTurn(G, i, now) {
 function doDig(G, s, i, now, late = false) {
   if (!Number.isInteger(i) || i < 0 || i >= G.cells.length || G.open[i]) return false;
   const kind = G.cells[i], st = G.st[s];
+  G.hand[i] = 1;
   const opened = flood(G, i, s).filter(j => j !== i);
   let pts = 0;
   if (isGem(kind)) { pts = PTS[kind]; st[kind === KIND.gem ? 'gems' : kind === KIND.big ? 'big' : 'chest']++; G.chain++; }
@@ -122,33 +124,43 @@ export function act(G, s, a) {
 
 // ---------- what everyone can see ----------
 // One number per tile: -1 still under grass; 0-8 dug and empty (the number of traps next to it);
-// 11 gem, 12 big gem, 13 chest, 14 trap. Plus the dug empty tiles that still have a gem buried next to them.
+// 11 gem, 12 big gem, 13 chest, 14 trap. Plus the dug empty tiles that still have a gem buried close by (HINT.reach).
 export const SHOWN = { gem: 11, big: 12, chest: 13, trap: 14 };
 function board(G) {
   const t = G.cells.map((k, i) => (!G.open[i] ? -1 : k === KIND.dirt ? G.num[i] : 10 + k));
-  const glint = [];
-  t.forEach((v, i) => { if (v >= 0 && v <= 8 && around(i, G.w, G.h).some(j => !G.open[j] && isGem(G.cells[j]))) glint.push(i); });
-  return { t, glint };
+  const glint = [], lit = [];
+  if (HINT.reach > 0) t.forEach((v, i) => {
+    if (v < 0 || v > 8 || (HINT.dugOnly && !G.hand[i])) return;
+    lit.push(i);
+    if (near(i, G.w, G.h).some(j => !G.open[j] && isGem(G.cells[j]))) glint.push(i);
+  });
+  return { t, glint, lit };
 }
 const left = G => { const L = { gem: 0, big: 0, chest: 0, trap: 0 }; G.cells.forEach((k, i) => { if (!G.open[i]) { if (k === KIND.gem) L.gem++; else if (k === KIND.big) L.big++; else if (k === KIND.chest) L.chest++; else if (k === KIND.trap) L.trap++; } }); return L; };
 
 // ---------- bots ----------
-// Bots only use what every player can see: the numbers, the sparkles and how much is still buried.
+// Bots only use what every player can see: the numbers, the stars and how much is still buried.
 // They work out which tiles are certainly safe or certainly traps, then pick the tile most likely to hold a gem.
 // fuzz: random error in its judgement; careless: how often it digs a hunch instead; passes: how far it thinks it through.
 export const BOTS = {
   chill: { fuzz: .5, careless: .22, passes: 1, fear: 3 },
   sharp: { fuzz: .06, careless: 0, passes: 4, fear: 6 },
 };
-export function judge(w, h, t, glint, L, passes = 4) {
+export function judge(w, h, t, glint, L, passes = 4, reach = HINT.reach, lit = null) {
   const n = t.length, hidden = [], g = new Set(glint);
   for (let i = 0; i < n; i++) if (t[i] < 0) hidden.push(i);
   const trap = new Set(), safe = new Set(), noGem = new Set(), cons = [];
   for (let i = 0; i < n; i++) if (t[i] >= 0 && t[i] <= 8) {
     const nb = around(i, w, h), hid = nb.filter(j => t[j] < 0);
     if (!hid.length) continue;
-    cons.push({ hid, need: t[i] - nb.filter(j => t[j] === SHOWN.trap).length, glint: g.has(i) });
-    if (!g.has(i)) for (const j of hid) noGem.add(j);
+    cons.push({ hid, need: t[i] - nb.filter(j => t[j] === SHOWN.trap).length });
+  }
+  const stars = []; // what the stars say: a gem somewhere in this area, or none in it
+  const lights = lit ? new Set(lit) : null;
+  if (reach > 0) for (let i = 0; i < n; i++) if (t[i] >= 0 && t[i] <= 8 && (!lights || lights.has(i))) {
+    const hid = near(i, w, h, reach).filter(j => t[j] < 0);
+    if (!hid.length) continue;
+    if (g.has(i)) stars.push(hid); else for (const j of hid) noGem.add(j);
   }
   for (let p = 0; p < passes; p++) {
     let changed = false;
@@ -182,7 +194,7 @@ export function judge(w, h, t, glint, L, passes = 4) {
     }
     let pG = noGem.has(i) || pT >= 1 ? 0 : -1;
     if (pG < 0) {
-      for (const c of cons) if (c.glint && c.hid.includes(i)) pG = Math.max(pG, 1 / c.hid.filter(j => !trap.has(j)).length);
+      for (const a of stars) if (a.includes(i)) pG = Math.max(pG, 1 / Math.max(1, a.filter(j => !trap.has(j) && !noGem.has(j)).length));
       if (pG < 0) pG = pG0;
       pG = Math.min(pG, 1 - pT);
     }
@@ -191,7 +203,7 @@ export function judge(w, h, t, glint, L, passes = 4) {
 }
 function botMove(G, s, now, level = G.opts.bots, late = false) {
   const B = typeof level === 'object' ? level : BOTS[level] || BOTS.chill;
-  const { t, glint } = board(G), opts = judge(G.w, G.h, t, glint, left(G), B.passes);
+  const { t, glint, lit } = board(G), opts = judge(G.w, G.h, t, glint, left(G), B.passes, HINT.reach, lit);
   let best = null;
   if (Math.random() < B.careless) { // a hunch: any tile that is not a sure trap
     const ok = opts.filter(o => o.pT < 1); best = ok[Math.random() * ok.length | 0];
@@ -249,7 +261,7 @@ export function view(G, s) {
     turn: G.turn, chain: G.chain, timer: G.opts.timer, botsLevel: G.opts.bots, ms: MS,
     tLeft: G.stage === 'turn' && G.tEnd ? Math.max(0, G.tEnd - now) : -1,
     startAgo: now - G.startAt,
-    tiles: B.t, glint: B.glint, by: G.by, left: left(G),
+    tiles: B.t, glint: B.glint, lit: B.lit, by: G.by, left: left(G),
     dig: G.dig && { ...G.dig, ago: now - G.dig.at },
     // the whole field only once the game is over
     all: G.ph === 'end' ? G.cells.map((k, i) => (k === KIND.dirt ? G.num[i] : 10 + k)) : null,
