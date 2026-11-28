@@ -8,6 +8,7 @@ import { youArrow, animateArrow, disposeArrow } from '../../marker3d.js';
 import { toonify, toonMat, skyDome, clouds as cloudSea, island, birds, petals, createFx, shaker, flat, STAR, DOT, CONF, HEART, nightScene } from '../../scenery3d.js';
 import { R, ORDER, MS, landing, wobbleR, HAND, spot } from './rules.js';
 import { dartLook } from '../../pieceskins.js';
+import { playArea, disc } from '../../nametag.js';
 
 const SKY_TOP = '#6fbdf2', SKY_LOW = '#d6f1ff', INK = '#3b2219';
 const BS = .8, BY = 1.95, BZ = 0;            // board size (world units per board unit), centre height, face z
@@ -222,6 +223,7 @@ export function createScene(canvas, { onFrame, onCue } = {}) {
 
   // ---------- frame loop ----------
   let W_ = 0, H_ = 0, T = 0;
+  const playFace = disc(BS * R.frame, 0).map(p => p.set(p.x, BY + p.z, BZ + .05)); // the board face (upright): name tags keep off it
   const camPos = new THREE.Vector3(.4, 2.3, 6.5), camLook = new THREE.Vector3(0, BY - .2, 0), wantPos = new THREE.Vector3(), wantLook = new THREE.Vector3();
   const v = new THREE.Vector3(), v2 = new THREE.Vector3(), proj = new THREE.Vector3(), info = { tags: [], aimLab: null, busy: false };
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -BZ);
@@ -327,6 +329,7 @@ export function createScene(canvas, { onFrame, onCue } = {}) {
     });
     info.tags.length = avs.length;
     info.busy = !!fly;
+    playArea(camera, W_, H_, playFace);
     onFrame?.(info);
   }
   // A dart has landed: effects, then tell the HUD.

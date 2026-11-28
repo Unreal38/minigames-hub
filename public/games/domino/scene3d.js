@@ -9,6 +9,7 @@ import { hudFitOk, easeRefit } from '../../camfit.js';
 import { TILES, layout, footprint } from './rules.js';
 import { paintHalf } from './tiles.js';
 import { dominoLook } from '../../pieceskins.js';
+import { playArea } from '../../nametag.js';
 
 const SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
 const U = .56, TH = .19;      // half a tile (one square) in world units, and how thick a tile is
@@ -268,6 +269,7 @@ export function createScene(canvas, { onFrame } = {}) {
   let T = 0, dead = false, lastNow = 0, seatsN = 0;
   const tv = new THREE.Vector3();
   const info = { tags: [], ends: { l: { x: 0, y: 0 }, r: { x: 0, y: 0 } }, pile: { x: 0, y: 0 } };
+  const playBox = new THREE.Box3(); // the table top with the line and the hands on it: name tags keep off it
   function loop(dt, now) {
     if (dead) return;
     if (!W) resize('init'); else resize(seatsN !== n ? true : undefined);
@@ -307,6 +309,7 @@ export function createScene(canvas, { onFrame } = {}) {
     info.tags.length = seats.length;
     if (ends) for (const k of ['l', 'r']) { const e = ends[k]; tv.set(e.x * U, .1, e.z * U); line.localToWorld(tv); tv.project(camera); info.ends[k].x = (tv.x + 1) / 2 * W; info.ends[k].y = (1 - tv.y) / 2 * H; }
     tv.set(0, .75, D.TZ - .66).project(camera); info.pile.x = (tv.x + 1) / 2 * W; info.pile.y = (1 - tv.y) / 2 * H;
+    playBox.min.set(-D.TX, 0, -D.TZ); playBox.max.set(D.TX, .35, D.TZ); playArea(camera, W, H, playBox);
     onFrame?.(info);
   }
   const ticker = frameLoop(loop, { onSlow: () => res.lower() });

@@ -10,6 +10,7 @@ import { hudFitOk } from '../../camfit.js';
 import { PETS, check, isEgg, elOf, numOf } from './rules.js';
 import { W as FW, H as FH, paintTile, petImage, loaded } from './tiles.js';
 import { herdLook } from '../../pieceskins.js';
+import { playArea } from '../../nametag.js';
 
 const SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
 const TW = .5, TL = .66, TH = .13, GAP = .04, PAD = .13, GX = .3, GZ = .36; // tile size, gaps inside a group, between groups and rows
@@ -406,6 +407,7 @@ export function createScene(canvas, { onFrame } = {}) {
   let T = 0, lastNow = 0, seatsN = 0;
   const tv = new THREE.Vector3();
   const info = { tags: [], groups: new Map(), pile: { x: 0, y: 0 }, next: { x: 0, y: 0 }, portrait: false };
+  const playBox = new THREE.Box3(); // the table with the herds on it: name tags keep off it
   function loop(dt, now) {
     if (dead) return;
     if (!W) resize('init'); else resize(seatsN !== n ? true : undefined);
@@ -468,6 +470,7 @@ export function createScene(canvas, { onFrame } = {}) {
     tv.set(pileG.position.x, .8, pileG.position.z).project(camera); info.pile.x = (tv.x + 1) / 2 * W; info.pile.y = (1 - tv.y) / 2 * H;
     tv.set(nextSpot.x, .05, nextSpot.z).project(camera); info.next.x = (tv.x + 1) / 2 * W; info.next.y = (1 - tv.y) / 2 * H;
     info.portrait = portrait;
+    playBox.min.set(-D.TX, 0, -D.TZ); playBox.max.set(D.TX, .3, D.TZ); playArea(camera, W, H, playBox);
     onFrame?.(info);
   }
   const ticker = frameLoop(loop, { onSlow: () => res.lower() });

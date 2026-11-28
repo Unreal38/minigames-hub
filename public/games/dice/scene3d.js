@@ -8,6 +8,7 @@ import { toonify, toonMat, shell, skyDome, clouds, island, birds, petals, create
 import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { hudFitOk, easeRefit } from '../../camfit.js';
 import { matches } from './rules.js';
+import { playArea, disc } from '../../nametag.js';
 
 const INK = '#4a2c22', SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
 const R = 3.4;                 // table radius
@@ -215,6 +216,7 @@ export function createScene(canvas, { onFrame } = {}) {
   // ---------- loop ----------
   let T = 0, dead = false;
   const tv = new THREE.Vector3(), want = new THREE.Vector3(), wq = new THREE.Quaternion(), we = new THREE.Euler();
+  const playTop = disc(R + .45, -.02, { h: .45 }); // the table top and the cards/dice on it: name tags keep off it
   const info = { tags: [], bid: { x: 0, y: 0 } };
   function loop(dt) {
     if (dead) return;
@@ -279,6 +281,7 @@ export function createScene(canvas, { onFrame } = {}) {
     });
     info.tags.length = seats.length;
     tv.set(0, .05, .62).project(camera); info.bid.x = (tv.x + 1) / 2 * W; info.bid.y = (1 - tv.y) / 2 * H;
+    playArea(camera, W, H, playTop);
     onFrame?.(info);
   }
   const ticker = frameLoop(loop, { onSlow: () => res.lower() });

@@ -10,6 +10,7 @@ import { hudFitOk, easeRefit } from '../../camfit.js';
 import { petModel } from '../farm/pets3d.js';
 import { cellsOf, MISS, HIT, CLEAR } from './rules.js';
 import { boatLook } from '../../pieceskins.js';
+import { playArea } from '../../nametag.js';
 
 const SKY_TOP = '#4fb0f2', SKY_LOW = '#d3f1ff';
 const BW = 10;            // a bay is this wide, whatever the number of squares
@@ -346,6 +347,7 @@ export function createScene(canvas, { onFrame } = {}) {
   // ---------- loop ----------
   let dead = false, smokeT = 0;
   const tv = new THREE.Vector3(), info = { tags: [] };
+  const playBoxes = [];
   function loop(dt) {
     if (dead) return;
     resize(); T += dt;
@@ -414,6 +416,11 @@ export function createScene(canvas, { onFrame } = {}) {
       avWorld(i, -SAND, tv); tv.z += 2.5 * t.k; tv.project(camera); t.yb = (1 - tv.y) / 2 * H; // the small bay on a phone has its tag under the islet
     });
     info.tags.length = bays.length;
+    bays.forEach((B, i) => { // each bay's grid of squares: name tags keep off them
+      const b = playBoxes[i] ||= new THREE.Box3(), s = B.g.scale.x, p = B.g.position;
+      b.min.set(p.x - BW / 2 * s, 0, p.z - BW / 2 * s); b.max.set(p.x + BW / 2 * s, .6 * s, p.z + BW / 2 * s);
+    });
+    playBoxes.length = bays.length; playArea(camera, W, H, ...playBoxes);
     onFrame?.(info);
   }
   const ticker = frameLoop(loop, { onSlow: () => res.lower() });
